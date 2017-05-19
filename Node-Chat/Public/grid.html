@@ -1,0 +1,58 @@
+<html>
+
+<head>
+    <Title>Making a game</title>
+    <script src="https://code.createjs.com/easeljs-0.8.0.min.js"></script>
+    <script src="https://code.createjs.com/tweenjs-0.6.0.min.js"></script>
+    <script src="https://code.createjs.com/preloadjs-0.6.0.min.js"></script>
+</head>
+
+<body onload="init();" style=" background: lightblue;">
+    <canvas id="demoCanvas" width="320px" height="320px" style="background: #fff; margin:10px"></canvas>
+    <p id="x"></p>
+    <p id="y"></p>
+    <p id="z"></p>
+    <script>
+        function init() {
+            
+            var stage = new createjs.Stage("demoCanvas");
+            createjs.Touch.enable(stage);
+            stage.enableMouseOver(10);
+            var padding = 1;
+            var width = 55;
+            var height = 55;
+            var cols = 15;
+            for(var i=0;i<200;i++) {
+                var s = new createjs.Shape();
+                s.overColor = "#3281FF"
+                s.outColor = "#FF0000"
+                s.graphics.beginFill(s.outColor).drawRect(0, 0, width, height).endFill();
+                s.x = (width + padding) * (i%cols);
+                s.y = (height + padding) * (i/cols|0);
+                s.onMouseOver = handleMouseOver;
+                s.onMouseOut = handleMouseOut;
+                stage.addChild(s)
+            }
+
+            createjs.Ticker.addEventListener("tick", tick);
+            //createjs.Ticker.addListener(stage);
+
+            function handleMouseOver(event) {
+            var target = event.target;
+            target.graphics.clear().beginFill(target.overColor).drawRect(0, 0, width, height).endFill();
+            }
+
+            function handleMouseOut(event) {
+                var target = event.target;
+                target.graphics.clear().beginFill(target.outColor).drawRect(0, 0, width, height).endFill();
+            }
+
+            function tick() {
+            stage.update();   
+            }
+                    
+                    }
+    </script>
+</body>
+
+</html>
