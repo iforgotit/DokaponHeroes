@@ -15,7 +15,7 @@
     <link href="../../assets/css/bootstrap.min.css" rel="stylesheet">
 
   </head>
-  <body>
+  <body onload="checkaccount()">
     <div class="container">
 
       <form class="form-signin col-md-6">
@@ -33,10 +33,26 @@
     </script>
     <script>
       function login(){
-        socket.emit('email',document.getElementById("inputEmail").value);
-        socket.emit('dname',document.getElementById("dname").value);
-        localStorage.setItem('email',document.getElementById("inputEmail").value)
-        window.location.href = 'landing.html';
+
+        var JSONuser = { "email" : document.getElementById("inputEmail").value , "dname" : document.getElementById("dname").value }
+        socket.emit('user',JSONuser);
+        setTimeout(function(){
+          socket.on('id',function(msg){
+            document.getElementById("inputEmail").value = 1;
+              //document.getElementById("inputEmail").value = msg;
+              //localStorage.setItem('id',msg);
+              //window.location.href = 'landing.html';
+            });
+          },2000);
+        }
+        
+        
+      function checkaccount()
+        {if (typeof(Storage) !== 'undefined') {
+          if (localStorage.email){
+            window.location.href = 'landing.html';
+          }
+        }
       }
     </script>
   </body>
