@@ -1,59 +1,73 @@
 <!doctype html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <meta name="description" content="">
-    <meta name="author" content="">
-    <link rel="icon" href="../../favicon.ico">
 
-    <title>Dokapon Heroes</title>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <link rel="icon" href="../../favicon.ico">
 
-    <!-- Bootstrap core CSS -->
-    <link href="../../assets/css/bootstrap.min.css" rel="stylesheet">
+  <title>Dokapon Heroes</title>
 
-  </head>
-  <body onload="checkaccount()">
-    <div class="container">
+  <!-- Bootstrap core CSS -->
+  <link href="../../assets/css/bootstrap.min.css" rel="stylesheet">
 
-      <form class="form-signin col-md-6">
-        <h2 class="form-signin-heading">Who dis?</h2><br>
-        <label for="inputEmail" class="sr-only">Email address</label>
-        <input type="email" id="inputEmail" class="form-control" placeholder="Email address" required autofocus><br>
-        <label for="dname" class="sr-only">Display Name</label>
-        <input type="text" id="dname" class="form-control" placeholder="Display Name" required><br>
-        <button class="btn btn-lg btn-primary col-md-3" onclick="login()">LET'S GO</button>
-      </form>
-    </div> <!-- /container -->
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-      var socket = io();
-    </script>
-    <script>
-      function login(){
+</head>
 
-        var JSONuser = { "email" : document.getElementById("inputEmail").value , "dname" : document.getElementById("dname").value }
-        socket.emit('user',JSONuser);
-        setTimeout(function(){
-          socket.on('id',function(msg){
-            document.getElementById("inputEmail").value = 1;
-              //document.getElementById("inputEmail").value = msg;
-              //localStorage.setItem('id',msg);
-              //window.location.href = 'landing.html';
-            });
-          },2000);
-        }
-        
-        
-      function checkaccount()
-        {if (typeof(Storage) !== 'undefined') {
-          if (localStorage.email){
+<body onload="checkaccount()">
+  <div class="container">
+
+    <form class="form-signin col-md-6">
+      <h2 class="form-signin-heading">Who dis?</h2><br>
+      <!--Email field-->
+      <label for="inputEmail" class="sr-only">Email address</label>
+      <input type="text" id="inputEmail" class="form-control" placeholder="Email address" autofocus><br>
+      <!--Display name field-->
+      <label for="dname" class="sr-only">Display Name</label>
+      <input type="text" id="dname" class="form-control" placeholder="Display Name" required><br>
+      <!--login button-->
+      <input id="btnLogin" type="button" class="btn btn-lg btn-primary col-md-3" onclick="login()" value="LETS GO">
+    </form>
+    <p id="z"></p>
+  </div>
+  <!-- /container -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    var socket = io();
+    //receiving an id back. This is triggered if the user exist on login or when a new user is created
+    socket.on('userJSON', function (msg) {
+      //Sets id in local storage
+      document.getElementById("z").innerHTML = "test";
+      localStorage.setItem('user', JSON.stringify(msg));
+      localStorage.setItem('id', msg._id);
+      localStorage.setItem('dname', msg.dname);
+      localStorage.setItem('email', msg.email);
+      //moves user to the landing page
+      window.location.href = 'landing.html';
+    });
+  </script>
+  <script>
+      //executed on clicking the login button
+      function login() {
+        document.getElementById("btnLogin").disabled = true;
+        //grabs the email and display name field vales and puts them in an object
+        var JSONuser = { "email": document.getElementById("inputEmail").value, "dname": document.getElementById("dname").value }
+        //sends the object to the server
+        socket.emit('user', JSONuser);
+        document.getElementById("btnLogin").disabled = false;
+      };
+      //Executed on loading page, checks if the user has an id in local storage  
+      function checkaccount() {
+        if (typeof (Storage) !== 'undefined') {
+          if (localStorage.user) {
             window.location.href = 'landing.html';
           }
         }
       }
-    </script>
-  </body>
+  </script>
+</body>
+
 </html>

@@ -1,41 +1,69 @@
-<!doctype html>
+﻿<!doctype html>
 <html>
-  <head>
-    <title>Socket.IO chat</title>
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font: 13px Helvetica, Arial; }
-      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
-      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
-      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
-      #messages { list-style-type: none; margin: 0; padding: 0; }
-      #messages li { padding: 5px 10px; }
-      #messages li:nth-child(odd) { background: #eee; }
-      #messages { margin-bottom: 40px }
-    </style>
-  </head>
-  <body>
-    <div class=" col-md-2">
-      <ul class="nav nav-pills nav-stacked anyClass">
-    <ul id="messages"></ul>
-    <form action="">
-      <input id="m" autocomplete="off" /><button>Send</button>
-    </form>
-    <!--<script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
-    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
-    <script>
-      $(function () {
-        var socket = io();
-        $('form').submit(function(){
-          socket.emit('chat message', $('#m').val());
-          $('#m').val('');
-          return false;
-        });
-        socket.on('chat message', function(msg){
-          $('#messages').append($('<li>').text(msg));
-          window.scrollTo(0, document.body.scrollHeight);
-        });
-      });
-    </script>-->
-  </body>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="../../favicon.ico">
+
+    <title>Dokapon Heroes</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="../../assets/css/bootstrap.min.css" rel="stylesheet">
+
+</head>
+
+<body>
+    <div class="container">
+
+        <div class="row">
+            <div class="col-md-8">
+                <h2>Trash Talk</h2>
+                <div class="panel-body" style="max-height: 10;">
+                    <div class="list-group" id="lichat">
+                    </div>
+                </div>
+                <form class="form-inline">
+                    <div class="form-group col-md-10 col-sm-10">
+                        <input type="text" class="form-control" style="width : 100%" id="txtMsg" placeholder="Message">
+                    </div>
+                    <input id="btnSend" type="button" class="btn btn-default" onclick="send()" value="Send">
+                </form>
+            </div>
+            <div class="col-md-4">
+                <br>
+                <br>
+                <input id="btnStart" type="button" class="btn btn-lg btn-primary" onclick="start()" value="Start Game">
+            </div>
+
+        </div>
+        <p id="z"></p>
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+            var socket = io();
+
+            var chat = document.getElementById("lichat");
+            var chatHTML = '<a class="list-group-item"><h4 class="list-group-item-heading">Welcome ' + localStorage.dname + '</h4><p class="list-group-item-text">Lets see what you got</p></a>';
+            chat.innerHTML = chat.innerHTML + chatHTML;
+
+            socket.on('chat', function (JSONmsg) {
+                var chat = document.getElementById("lichat");
+                var chatHTML = '<a class="list-group-item"><h4 class="list-group-item-heading">' + JSONmsg.dname + '</h4><p class="list-group-item-text">' + JSONmsg.msg + '</p></a>';
+                chat.innerHTML = chat.innerHTML + chatHTML;
+            });
+        </script>
+        <script>
+            function send() {
+                var JSONmsg = { "dname": localStorage.dname, "msg": document.getElementById("txtMsg").value }
+                socket.emit('msg', JSONmsg);
+                document.getElementById("txtMsg").value = "";
+            }
+        </script>
+
+</body>
+
 </html>
