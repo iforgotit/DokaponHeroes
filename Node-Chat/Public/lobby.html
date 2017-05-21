@@ -1,0 +1,192 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="../../favicon.ico">
+
+    <title>Dokapon Heroes</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="../../assets/css/bootstrap.min.css" rel="stylesheet">
+
+</head>
+
+<body onload="joinChat()">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-2">
+                <br>
+                <br>
+                <input id="btnReturn" type="button" class="btn btn-lg btn-primary" onclick="landing()" value="Return to Main Lobby">
+                <br>
+                <br>
+                <div id="pnlUsers" class="panel" style="overflow-y: scroll;">
+                    <ul id="ulUsers" class="list-unstyled">
+                    </ul>
+                </div>
+            </div>
+            <div class="col-sm-5">
+                <div class="panel" style="width: 98%;">
+                    <div class="panel-heading">
+                        <h2>Choose your class</h2>
+                    </div>
+                    <div class="panel-body">
+                        <form class="form-inline">
+                            <div class="form-group center-block" style="width:49%">
+                                <a id="sltWarrior" class="list-group-item" style="height:300px" onclick="pickClass('sltWarrior')">
+                                    <div style="height:150px">
+                                        <img src="../../assets/img/warrior.png" class="center-block">
+                                    </div>
+                                    <h4 class="list-group-item-heading text-center">Warrior</h4>
+                                    <p class="list-group-item-text text-center">Health: 20</p>
+                                    <p class="list-group-item-text text-center">Might: 3</p>
+                                    <p class="list-group-item-text text-center">Magic: 1</p>
+                                    <p class="list-group-item-text text-center">Cunning: 1</p>
+                                </a>
+                            </div>
+                            <div class="form-group center-block" style="width:49%">
+                                <a id="sltMagii" class="list-group-item" style="height:300px" onclick="pickClass('sltMagii')">
+                                    <div style="height:150px">
+                                        <img src="../../assets/img/magii.png" class="center-block">
+                                    </div>
+                                    <h4 class="list-group-item-heading text-center">Magii</h4>
+                                    <p class="list-group-item-text text-center">Health: 20</p>
+                                    <p class="list-group-item-text text-center">Might: 1</p>
+                                    <p class="list-group-item-text text-center">Magic: 3</p>
+                                    <p class="list-group-item-text text-center">Cunning: 1</p>
+                                </a>
+                            </div>
+                        </form>
+                        <form class="form-inline">
+                            <div class="form-group center-block" style="width:49%">
+                                <a id="sltRogue" class="list-group-item" style="height:300px" onclick="pickClass('sltRogue')">
+                                    <div style="height:150px">
+                                        <img src="../../assets/img/rogue.png" class="center-block">
+                                    </div>
+                                    <h4 class="list-group-item-heading text-center">Rogue</h4>
+                                    <p class="list-group-item-text text-center">Health: 20</p>
+                                    <p class="list-group-item-text text-center">Might: 2</p>
+                                    <p class="list-group-item-text text-center">Magic: 2</p>
+                                    <p class="list-group-item-text text-center">Cunning: 2</p>
+                                </a>
+                            </div>
+                            <div class="form-group center-block" style="width:49%">
+                                <a id="sltObserver" class="list-group-item" style="height:300px" onclick="pickClass('sltObserver')">
+
+                                    <img src="../../assets/img/observer.png" class="center-block">
+                                    <h4 class="list-group-item-heading text-center">Observer</h4>
+                                    <p class="list-group-item-text text-center">What we see depends mainly on what we are looking for.</p>
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-5">
+                <div class="panel" style="width: 98%;">
+                    <div class="panel-heading">
+                        <h2>Dokapon Heroes - Game Lobby</h2>
+                    </div>
+                    <div id="pnlChat" class="panel-body" style="overflow-y: scroll;">
+                        <div class="list-group" id="lichat">
+                        </div>
+                    </div>
+                    <form class="form-inline">
+                        <div id="fgMsg" class="form-group col-sm-10">
+                            <input type="text" class="form-control" style="width : 100%" id="txtMsg" placeholder="Message">
+                            <p id="limit"></p>
+                        </div>
+                        <input id="btnSend" type="button" class="btn btn-info" onclick="send()" value="Send">
+                    </form>
+                    <p id="z"></p>
+                    <br>
+                </div>
+            </div>
+        </div>
+
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+            var socket = io('/lobby');
+
+            var chat = document.getElementById("lichat");
+
+            socket.on('chat', function (JSONmsg) {
+                var chat = document.getElementById("lichat");
+                var chatHTML = '<a class="list-group-item"><h4 class="list-group-item-heading">' + JSONmsg.dname +
+                    '</h4><p class="list-group-item-text">' + JSONmsg.msg + '</p></a>';
+                chat.innerHTML = chat.innerHTML + chatHTML;
+            });
+
+            socket.on('attendance', function () {
+                socket.emit('checkin', localStorage.dname);
+                var userlist = document.getElementById("ulUsers");
+                while (userlist.hasChildNodes()) {
+                    userlist.removeChild(userlist.lastChild);
+                }
+            });
+
+            socket.on('buildUser', function (newUser) {
+                var userlist = document.getElementById("ulUsers");
+                var liElement = document.createElement("li");
+                liElement.textContent = newUser;
+                userlist.appendChild(liElement);
+            });
+
+            function escapeHtml(text) {
+                return text
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+        </script>
+        <script>
+            function send() {
+                if (document.getElementById("txtMsg").value.length == 0) {
+                    document.getElementById("limit").innerHTML = "";
+                    document.getElementById("fgMsg").classList.add('has-error');
+                } else if (document.getElementById("txtMsg").value.length > 500) {
+                    document.getElementById("limit").innerHTML = "500 Characters Max";
+                    document.getElementById("fgMsg").classList.add('has-error');
+                } else {
+                    var cleanTxt = escapeHtml(document.getElementById("txtMsg").value);
+                    var JSONmsg = {
+                        "dname": localStorage.dname,
+                        "msg": cleanTxt
+                    };
+                    socket.emit('msg', JSONmsg);
+                    document.getElementById("txtMsg").value = "";
+                    document.getElementById("limit").innerHTML = "";
+                    document.getElementById("fgMsg").classList.remove('has-error');
+                }
+            }
+
+            function joinChat() {
+                socket.emit('newUser');
+                var wheight = (window.innerHeight - 200) + "px";
+                document.getElementById("pnlChat").style.height = wheight;
+                document.getElementById("pnlUsers").style.height = wheight;
+            }
+
+            function pickClass(sltClass){
+                // document.getElementById(sltWarrior).classList.remove('list-group-item-success');
+                // document.getElementById(sltRogue).classList.remove('list-group-item-success');
+                // document.getElementById(sltMagii).classList.remove('list-group-item-success');
+                // document.getElementById(sltObserver).classList.remove('list-group-item-success');
+                document.getElementById(sltClass).classList.add('list-group-item-success');
+            }
+
+            function landing() {
+                window.location.href = 'landing.html';
+            }
+        </script>
+
+</body>
+
+</html>

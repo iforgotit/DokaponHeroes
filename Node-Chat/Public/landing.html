@@ -2,8 +2,7 @@
 <html>
 
 <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <meta name="description" content="">
@@ -17,50 +16,112 @@
 
 </head>
 
-<body>
+<body onload="joinChat()">
     <div class="container">
-
+        <br>
         <div class="row">
-            <div class="col-md-8">
-                <h2>Trash Talk</h2>
-                <div class="panel-body" style="max-height: 10;">
+            <div class="panel col-sm-8">
+                <div class="panel-heading">
+                    <h1>Dokapon Heroes - Main Lobby</h1>
+                </div>
+                <div id="pnlChat" class="panel-body" style="overflow-y: scroll;">
                     <div class="list-group" id="lichat">
                     </div>
                 </div>
                 <form class="form-inline">
-                    <div class="form-group col-md-10 col-sm-10">
+                    <div id="fgMsg" class="form-group col-sm-10">
                         <input type="text" class="form-control" style="width : 100%" id="txtMsg" placeholder="Message">
+                        <p id="limit"></p>
                     </div>
-                    <input id="btnSend" type="button" class="btn btn-default" onclick="send()" value="Send">
+                    <input id="btnSend" type="button" class="btn btn-info" onclick="send()" value="Send">
                 </form>
+                <p id="z"></p>
+                <br>
             </div>
-            <div class="col-md-4">
+            <div class="col-sm-4">
                 <br>
                 <br>
-                <input id="btnStart" type="button" class="btn btn-lg btn-primary" onclick="start()" value="Start Game">
+                <input id="btnLobby" type="button" class="btn btn-lg btn-primary" onclick="lobby()" value="Join Game Lobby">
+                <br>
+                <br>
+                <div id="pnlUsers" class="panel" style="overflow-y: scroll;">
+                    <ul id="ulUsers" class="list-unstyled">
+                    </ul>
+                </div>
             </div>
-
         </div>
-        <p id="z"></p>
+        
         <script src="/socket.io/socket.io.js"></script>
         <script>
             var socket = io();
 
             var chat = document.getElementById("lichat");
-            var chatHTML = '<a class="list-group-item"><h4 class="list-group-item-heading">Welcome ' + localStorage.dname + '</h4><p class="list-group-item-text">Lets see what you got</p></a>';
+            var chatHTML = '<a class="list-group-item"><h4 class="list-group-item-heading">Welcome ' + localStorage
+                .dname +
+                '</h4><p class="list-group-item-text">Trash talk down here</p></a>';
             chat.innerHTML = chat.innerHTML + chatHTML;
 
             socket.on('chat', function (JSONmsg) {
                 var chat = document.getElementById("lichat");
-                var chatHTML = '<a class="list-group-item"><h4 class="list-group-item-heading">' + JSONmsg.dname + '</h4><p class="list-group-item-text">' + JSONmsg.msg + '</p></a>';
+                var chatHTML = '<a class="list-group-item"><h4 class="list-group-item-heading">' + JSONmsg.dname +
+                    '</h4><p class="list-group-item-text">' + JSONmsg.msg + '</p></a>';
                 chat.innerHTML = chat.innerHTML + chatHTML;
             });
+
+            socket.on('attendance', function () {
+                socket.emit('checkin', localStorage.dname);
+                var userlist = document.getElementById("ulUsers");
+                while (userlist.hasChildNodes()) {
+                    userlist.removeChild(userlist.lastChild);
+                }
+            });
+
+            socket.on('buildUser', function (newUser) {
+                var userlist = document.getElementById("ulUsers");
+                var liElement = document.createElement("li");
+                liElement.textContent = newUser;
+                userlist.appendChild(liElement);
+            });
+
+            function escapeHtml(text) {
+                return text
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
         </script>
         <script>
             function send() {
-                var JSONmsg = { "dname": localStorage.dname, "msg": document.getElementById("txtMsg").value }
-                socket.emit('msg', JSONmsg);
-                document.getElementById("txtMsg").value = "";
+                if (document.getElementById("txtMsg").value.length == 0) {
+                    document.getElementById("limit").innerHTML = "";
+                    document.getElementById("fgMsg").classList.add('has-error');
+                } else if (document.getElementById("txtMsg").value.length > 500) {
+                    document.getElementById("limit").innerHTML = "500 Characters Max";
+                    document.getElementById("fgMsg").classList.add('has-error');
+                } else {
+                    var cleanTxt = escapeHtml(document.getElementById("txtMsg").value);
+                    var JSONmsg = {
+                        "dname": localStorage.dname,
+                        "msg": cleanTxt
+                    };
+                    socket.emit('msg', JSONmsg);
+                    document.getElementById("txtMsg").value = "";
+                    document.getElementById("limit").innerHTML = "";
+                    document.getElementById("fgMsg").classList.remove('has-error');
+                }
+            }
+
+            function joinChat() {
+                socket.emit('newUser');
+                var wheight = (window.innerHeight - 200) + "px";
+                document.getElementById("pnlChat").style.height = wheight;
+                document.getElementById("pnlUsers").style.height = wheight;
+            }
+
+            function lobby() {
+                window.location.href = 'lobby.html';
             }
         </script>
 

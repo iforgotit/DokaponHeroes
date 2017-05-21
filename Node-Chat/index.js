@@ -15,14 +15,13 @@ app.get('/', function (req, res) {
 //sets file repository
 app.use(express.static('public'));
 
-//opens socket connection
+//opens root socket connection
 io.on('connection', function (socket) {
 
   console.log('a user connected');
 
   socket.on('user', function (user) {
 
-    //typeof mongodb.insertUser(user);
     var url = 'mongodb://localhost:27017/dkmmc';
     // Use connect method to connect to the server
     MongoClient.connect(url, function (err, db) {
@@ -38,14 +37,15 @@ io.on('connection', function (socket) {
       // Get the documents collection
       var collection = db.collection('users');
       // Find some documents
-      collection.find({ 'email': email }).toArray(function (err, docs) {
+      collection.find({
+        'email': email
+      }).toArray(function (err, docs) {
         assert.equal(err, null);
         if (docs[0]) {
           console.log("4 : " + docs[0]._id);
           socket.emit('userJSON', docs[0]);
           callback(docs[0]._id);
-        }
-        else {
+        } else {
           console.log("1 : " + JSON.stringify(user));
           typeof mongodb.insertUser(user, function () {
             console.log("2 : " + JSON.stringify(user));
@@ -59,14 +59,49 @@ io.on('connection', function (socket) {
     };
   });
 
+  socket.on('newUser', function () {
+    io.emit('attendance');
+  });
+
+  socket.on('checkin', function (dname) {
+    io.emit('buildUser', dname);
+  });
+
   socket.on('disconnect', function () {
     console.log('user disconnected');
+    io.emit('attendance');
   });
 
   socket.on('msg', function (msg) {
     console.log(msg);
     io.emit('chat', msg);
   });
+});
+
+//opens lobby namespace
+var lobbynsp = io.of('/lobby');
+lobbynsp.on('connection', function (socket) {
+
+  console.log('user connected lobby');
+
+  socket.on('newUser', function () {
+    lobbynsp.emit('attendance');
+  });
+
+  socket.on('checkin', function (dname) {
+    lobbynsp.emit('buildUser', dname);
+  });
+
+  socket.on('disconnect', function () {
+    console.log('user disconnected from lobby');
+    lobbynsp.emit('attendance');
+  });
+
+  socket.on('msg', function (msg) {
+    console.log(msg);
+    lobbynsp.emit('chat', msg);
+  });
+
 });
 
 http.listen(3000, function () {
