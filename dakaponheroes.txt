@@ -1,0 +1,103 @@
+Make a grid
+Add players
+players can move 1 square per turn
+If at the end of the turn two players are at the same square next turn is a battle
+Rock, paper, scissors to start? Dokapon style
+Last player alive wins
+
+Who goes first? Highest cunning then coin flip
+During a battle you pick two actions - Offensive and defensive
+
+Offensive Actions:
+Powerful Attack - 3*[might]
+Defensive Attack - 1*[might]
+Magic Missile - 2*[magic]
+Retreat - No action at the end of turn teleported to a new square
+
+Defensive Action:
+Counter Attack - Take full damage unless Powerful Attack on powerful attack, attacker takes 2*[might]
+Block - Reduce damage by 1/2
+Resist - Magic damage - defenders[magic]
+Focus - Increase all stats by [magic] for 2 turns
+
+Dodge% = ((Defenders [cunning] + 1) - Attackers [cunning])*5
+
+Player types:
+Might
+Magic
+Cunning
+
+Might: Warrior
+Health - 20
+Strength - 3
+Magic - 1
+Speed - 1
+
+Magic: Magii
+Health - 20
+Strength - 1
+Magic - 3
+Speed - 1
+
+Cunning: Rogue
+Health - 20
+Strength - 2
+Magic - 2
+Speed - 2
+
+Flow:
+Main Lobby
+Join a game lobby
+Select Type
+Start Game
+Generate Grid
+Place players
+Player selects movement
+
+Grid help - http://jsfiddle.net/sebastian_derossi/PYxu7/
+
+if (my coordinates = anyone else coordinates){
+
+}
+
+onClick="attack()"
+onClick="defend()"
+onClick="move()"
+
+function attack(){
+
+}
+
+function defend(){
+
+}
+
+function move(){
+
+}
+
+function setTurn(type, action){
+	turn[type] = action;
+}
+	
+var turn = {}
+socket.emit('myTurn', turn)
+
+TODO:
+Add validation to the login screen
+Fix set timer (set dead timer and defautl value to current time)
+Start with just actions no graphics
+	Timer for turns
+	Send actions
+	
+Generate Grid
+Place players
+Player selects movement
+
+Additional stuff:
+What happens if 3 players enter the same square
+Power Ups
+Wandering monsters
+Quests
+Auto scroll the chat without overriding manual scroll and tigger autoscroll when the bottom
+	https://stackoverflow.com/questions/18614301/keep-overflow-div-scrolled-to-bottom-unless-user-scrolls-up
