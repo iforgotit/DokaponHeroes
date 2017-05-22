@@ -22,7 +22,8 @@
             <div class="col-sm-2">
                 <br>
                 <br>
-                <input id="btnReturn" type="button" class="btn btn-lg btn-primary" onclick="landing()" value="Return to Main Lobby">
+                <input id="btnReturn" type="button" class="btn btn-lg btn-primary" style="width:100%; white-space:normal;" onclick="landing()"
+                    value="Return to Main Lobby">
                 <br>
                 <br>
                 <div id="pnlUsers" class="panel" style="overflow-y: scroll;">
@@ -38,7 +39,7 @@
                     <div class="panel-body">
                         <form class="form-inline">
                             <div class="form-group center-block" style="width:49%">
-                                <a id="sltWarrior" class="list-group-item" style="height:300px" onclick="pickClass('sltWarrior')">
+                                <a id="sltWarrior" class="list-group-item" style="height:300px" onclick="pickClass('sltWarrior','Warrior')">
                                     <div style="height:150px">
                                         <img src="../../assets/img/warrior.png" class="center-block">
                                     </div>
@@ -50,7 +51,7 @@
                                 </a>
                             </div>
                             <div class="form-group center-block" style="width:49%">
-                                <a id="sltMagii" class="list-group-item" style="height:300px" onclick="pickClass('sltMagii')">
+                                <a id="sltMagii" class="list-group-item" style="height:300px" onclick="pickClass('sltMagii','Magii')">
                                     <div style="height:150px">
                                         <img src="../../assets/img/magii.png" class="center-block">
                                     </div>
@@ -64,7 +65,7 @@
                         </form>
                         <form class="form-inline">
                             <div class="form-group center-block" style="width:49%">
-                                <a id="sltRogue" class="list-group-item" style="height:300px" onclick="pickClass('sltRogue')">
+                                <a id="sltRogue" class="list-group-item" style="height:300px" onclick="pickClass('sltRogue','Rogue')">
                                     <div style="height:150px">
                                         <img src="../../assets/img/rogue.png" class="center-block">
                                     </div>
@@ -76,9 +77,10 @@
                                 </a>
                             </div>
                             <div class="form-group center-block" style="width:49%">
-                                <a id="sltObserver" class="list-group-item" style="height:300px" onclick="pickClass('sltObserver')">
-
-                                    <img src="../../assets/img/observer.png" class="center-block">
+                                <a id="sltObserver" class="list-group-item" style="height:300px" onclick="pickClass('sltObserver','Observer')">
+                                    <div style="height:150px">
+                                        <img src="../../assets/img/observer.png" class="center-block">
+                                    </div>
                                     <h4 class="list-group-item-heading text-center">Observer</h4>
                                     <p class="list-group-item-text text-center">What we see depends mainly on what we are looking for.</p>
                                 </a>
@@ -86,6 +88,8 @@
                         </form>
                     </div>
                 </div>
+                <input id="btnStartGame" type="button" class="btn btn-primary btn-block" style="height:180px" onclick="startGame()" value=""
+                    disabled="disabled">
             </div>
             <div class="col-sm-5">
                 <div class="panel" style="width: 98%;">
@@ -96,7 +100,7 @@
                         <div class="list-group" id="lichat">
                         </div>
                     </div>
-                    <form class="form-inline">
+                    <form class="form-inline" onsubmit="send()">
                         <div id="fgMsg" class="form-group col-sm-10">
                             <input type="text" class="form-control" style="width : 100%" id="txtMsg" placeholder="Message">
                             <p id="limit"></p>
@@ -112,6 +116,7 @@
         <script src="/socket.io/socket.io.js"></script>
         <script>
             var socket = io('/lobby');
+            var selectedClass = undefined;
 
             var chat = document.getElementById("lichat");
 
@@ -122,8 +127,20 @@
                 chat.innerHTML = chat.innerHTML + chatHTML;
             });
 
+            socket.on('ggTimer', function (time) {
+                var chat = document.getElementById("lichat");
+                var chatHTML = '<p class="list-group-item-text">' + time + '...</p></a>';
+                chat.innerHTML = chat.innerHTML + chatHTML;
+            });
+
             socket.on('attendance', function () {
-                socket.emit('checkin', localStorage.dname);
+                var userString = "";
+                if (getSeletedClass() !== undefined) {
+                    userString = localStorage.dname + " - " + selectedClass;
+                } else {
+                    userString = localStorage.dname;
+                }
+                socket.emit('checkin', userString);
                 var userlist = document.getElementById("ulUsers");
                 while (userlist.hasChildNodes()) {
                     userlist.removeChild(userlist.lastChild);
@@ -134,7 +151,19 @@
                 var userlist = document.getElementById("ulUsers");
                 var liElement = document.createElement("li");
                 liElement.textContent = newUser;
+                liElement.id = newUser;
                 userlist.appendChild(liElement);
+            });
+
+            socket.on('status', function (status) {
+                if (status == "Start Game") {
+                    document.getElementById("btnStartGame").classList.remove('disabled');
+                    document.getElementById("btnStartGame").disabled = false;
+                } else {
+                    document.getElementById("btnStartGame").classList.add('disabled');
+                    document.getElementById("btnStartGame").disabled = true;
+                }
+                document.getElementById("btnStartGame").value = status;
             });
 
             function escapeHtml(text) {
@@ -148,6 +177,7 @@
         </script>
         <script>
             function send() {
+                event.preventDefault();
                 if (document.getElementById("txtMsg").value.length == 0) {
                     document.getElementById("limit").innerHTML = "";
                     document.getElementById("fgMsg").classList.add('has-error');
@@ -174,12 +204,32 @@
                 document.getElementById("pnlUsers").style.height = wheight;
             }
 
-            function pickClass(sltClass) {
+            function pickClass(btnClass, sltClass) {
+                setSelectedClass(sltClass);
                 document.getElementById("sltWarrior").classList.remove('list-group-item-success');
                 document.getElementById("sltRogue").classList.remove('list-group-item-success');
                 document.getElementById("sltMagii").classList.remove('list-group-item-success');
                 document.getElementById("sltObserver").classList.remove('list-group-item-success');
-                document.getElementById(sltClass).classList.add('list-group-item-success');
+                socket.emit('newUser');
+                document.getElementById(btnClass).classList.add('list-group-item-success');
+                document.getElementById(btnClass).setAttribute('disabled', true);
+            }
+
+            function startGame() {
+                document.getElementById("btnStartGame").classList.remove('disabled');
+                var chat = document.getElementById("lichat");
+                var chatHTML =
+                    '<a class="list-group-item"><h4 class="list-group-item-heading">Game Starting in...</h4>';
+                chat.innerHTML = chat.innerHTML + chatHTML;
+                socket.emit('startGame');
+            }
+
+            function setSelectedClass(sltClass) {
+                selectedClass = sltClass;
+            }
+
+            function getSeletedClass() {
+                return selectedClass;
             }
 
             function landing() {

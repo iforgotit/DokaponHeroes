@@ -7,6 +7,13 @@ var mongodb = require('./mongo');
 var MongoClient = require('mongodb').MongoClient,
   assert = require('assert');
 
+var numUsersLobby = 0;
+var waitformore = 0;
+
+http.listen(3000, function () {
+  console.log('listening on *:3000');
+});
+
 //sets default page
 app.get('/', function (req, res) {
   res.sendFile(__dirname + '/public/index.html');
@@ -80,21 +87,26 @@ io.on('connection', function (socket) {
 
 //opens lobby namespace
 var lobbynsp = io.of('/lobby');
+
 lobbynsp.on('connection', function (socket) {
 
   console.log('user connected lobby');
+  numUsersLobby++;
+  console.log('User count : ' + numUsersLobby);
 
   socket.on('newUser', function () {
     lobbynsp.emit('attendance');
   });
 
   socket.on('checkin', function (dname) {
+    console.log("that just happened");
     lobbynsp.emit('buildUser', dname);
   });
 
   socket.on('disconnect', function () {
-    console.log('user disconnected from lobby');
+    console.log('User count : ' + numUsersLobby);
     lobbynsp.emit('attendance');
+    numUsersLobby--;
   });
 
   socket.on('msg', function (msg) {
@@ -102,8 +114,29 @@ lobbynsp.on('connection', function (socket) {
     lobbynsp.emit('chat', msg);
   });
 
+  socket.on('startGame',function () {
+    lobbynsp.emit('ggTimer', 'Fuck you Rick');
+  });
+
+  var t = setInterval(lobbyStatus, 1000);
+
+  function lobbyStatus() {
+    var status;
+
+    if (numUsersLobby == 0) {
+      status = "Dead";
+      waitformore = 0;
+    } else if (numUsersLobby == 1) {
+      status = "Not Enough Players (" + numUsersLobby +")";
+      waitformore++;
+    } else if (waitformore <= 15) {
+      status = "Wait " + waitformore + " seconds for some more players";
+      waitformore++;
+    } else {
+      status = "Start Game : " + waitformore;
+    }
+    console.log(status);
+    lobbynsp.emit('status', status);
+  }
 });
 
-http.listen(3000, function () {
-  console.log('listening on *:3000');
-});

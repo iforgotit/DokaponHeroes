@@ -28,7 +28,7 @@
                     <div class="list-group" id="lichat">
                     </div>
                 </div>
-                <form class="form-inline">
+                <form class="form-inline" onsubmit="send()">
                     <div id="fgMsg" class="form-group col-sm-10">
                         <input type="text" class="form-control" style="width : 100%" id="txtMsg" placeholder="Message">
                         <p id="limit"></p>
@@ -94,6 +94,7 @@
         </script>
         <script>
             function send() {
+                event.preventDefault();
                 if (document.getElementById("txtMsg").value.length == 0) {
                     document.getElementById("limit").innerHTML = "";
                     document.getElementById("fgMsg").classList.add('has-error');
