@@ -10,7 +10,7 @@ var MongoClient = require('mongodb').MongoClient,
 var numUsersLobby = 0;
 var waitformore = 0;
 
-http.listen(3000, function () {
+http.listen(80, function () {
   console.log('listening on *:3000');
 });
 
