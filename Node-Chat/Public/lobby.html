@@ -198,6 +198,10 @@
             }
 
             function joinChat() {
+                if(localStorage._id == undefined){
+                    window.location.href = 'index.html';
+                    return false;
+                }
                 socket.emit('newUser');
                 var wheight = (window.innerHeight - 200) + "px";
                 document.getElementById("pnlChat").style.height = wheight;
