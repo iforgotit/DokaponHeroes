@@ -11,7 +11,7 @@ var numUsersLobby = 0;
 var waitformore = 0;
 
 http.listen(80, function () {
-  console.log('listening on *:3000');
+  console.log('listening on *:80');
 });
 
 //sets default page
