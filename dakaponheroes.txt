@@ -65,20 +65,25 @@ onClick="defend()"
 onClick="move()"
 
 function attack(){
-
+	target
+	action
 }
 
 function defend(){
-
+	action
 }
 
 function move(){
-
+	
 }
 
 function setTurn(type, action){
 	turn[type] = action;
 }
+
+{move : 1,1}
+{attack : 
+ target : 
 	
 var turn = {}
 socket.emit('myTurn', turn)
@@ -89,15 +94,8 @@ Fix set timer (set dead timer and defautl value to current time)
 Start with just actions no graphics
 	Timer for turns
 	Send actions
-	
 Generate Grid
 Place players
 Player selects movement
-
-Additional stuff:
-What happens if 3 players enter the same square
-Power Ups
-Wandering monsters
-Quests
-Auto scroll the chat without overriding manual scroll and tigger autoscroll when the bottom
-	https://stackoverflow.com/questions/18614301/keep-overflow-div-scrolled-to-bottom-unless-user-scrolls-up
+Combat
+	Multi-person
