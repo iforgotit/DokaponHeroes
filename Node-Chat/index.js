@@ -6,7 +6,9 @@ var port = process.env.PORT || 3000;
 var mongodb = require('./mongo');
 var MongoClient = require('mongodb').MongoClient,
   assert = require('assert');
+var bcrypt = require('bcrypt');
 
+const saltRounds = 10;
 var numUsersLobby = 0;
 var waitformore = 0;
 
@@ -114,7 +116,7 @@ lobbynsp.on('connection', function (socket) {
     lobbynsp.emit('chat', msg);
   });
 
-  socket.on('startGame',function () {
+  socket.on('startGame', function () {
     lobbynsp.emit('ggTimer', 'Fuck you Rick');
   });
 
@@ -127,7 +129,7 @@ lobbynsp.on('connection', function (socket) {
       status = "Dead";
       waitformore = 0;
     } else if (numUsersLobby == 1) {
-      status = "Not Enough Players (" + numUsersLobby +")";
+      status = "Not Enough Players (" + numUsersLobby + ")";
       waitformore++;
     } else if (waitformore <= 15) {
       status = "Wait " + waitformore + " seconds for some more players";
@@ -139,4 +141,3 @@ lobbynsp.on('connection', function (socket) {
     lobbynsp.emit('status', status);
   }
 });
-
