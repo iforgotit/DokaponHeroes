@@ -2,41 +2,119 @@
 <html>
 
 <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <meta name="description" content="">
-    <meta name="author" content="">
-    <link rel="icon" href="../../favicon.ico">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <link rel="icon" href="../../favicon.ico">
 
-    <title>Dokapon Heroes</title>
+  <title>Dokapon Heroes</title>
 
-    <!-- Bootstrap core CSS -->
-    <link href="../../assets/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap core CSS -->
+  <link href="../../assets/css/bootstrap.min.css" rel="stylesheet">
 
 </head>
 
 <body>
-    <div class="container">
-        <form class="form-signin col-md-6" action="/login" method="post">
-            <h2 class="form-signin-heading">Account Creation</h2><br>
-            <!--Email field-->
-            <label for="email" class="sr-only">Email address</label>
-            <input type="text" id="email" class="form-control" placeholder="Email Address" autofocus><br>
-            <!--Email field-->
-            <label for="dname" class="sr-only">Display Name</label>
-            <input type="text" id="dname" class="form-control" placeholder="Display Name"><br>
-            <!--Password field-->
-            <label for="password" class="sr-only">Password</label>
-            <input type="password" id="password" class="form-control" placeholder="Password" required><br>
-            <!--Confirm Password button-->
-            <label for="confirmPW" class="sr-only">Confirm</label>
-            <input type="password" id="password" class="form-control" placeholder="Confirm Password" required><br>
-            <input id="btnLogin" type="submit" class="btn btn-lg btn-primary col-md-3" value="Create Account">
-        </form>
-        <p id="z"></p>
-    </div>
+  <div class="container">
+    <form class="form-signin col-md-6" onsubmit="createAccount()">
+      <h2 class="form-signin-heading">Account Creation</h2><br>
+      <!--Email field-->
+      <label for="txtEmail" class="sr-only">Email address</label>
+      <input type="email" id="txtEmail" class="form-control" placeholder="Email Address" autofocus required><br>
+      <!--Email field-->
+      <label for="txtDname" class="sr-only">Display Name</label>
+      <input type="text" id="txtDname" class="form-control" placeholder="Display Name" required><br>
+      <!--Password field-->
+      <label for="txtPassword" class="sr-only" required>Password</label>
+      <input type="password" id="txtPassword" class="form-control" placeholder="Password" required><br>
+      <!--Confirm Password button-->
+      <label for="txtConfirmPW" class="sr-only">Confirm</label>
+      <input type="password" id="txtConfirmPW" class="form-control" placeholder="Confirm Password" required><br>
+      <button id="btnCreate" type="button" class="btn btn-lg btn-primary col-md-4" onclick="createAccount()">Create Account</button>
+    </form>
+  </div><br>
+  <div class="container col-md-2"></div>
+  <div class="col-md-4 alert alert-danger" id="z" role="alert" hidden>
+
+  </div>
+  <div class="container col-md-6"></div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    var socket = io();
+    //receiving an id back. This is triggered if the user exist on login or when a new user is created
+    socket.on('createSuccess', function (msg) {
+      //Sets id in local storage
+      document.getElementById("z").innerText = "test";
+      //moves user to the landing page
+      window.location.href = 'index.html?success=true';
+    });
+    socket.on('createFailure', function () {
+      //Existing account
+      document.getElementById("z").hidden = false;
+      document.getElementById("z").innerHTML =
+        '<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span><br>A user with this email already exist';
+    });
+  </script>
+  <script>
+    //executed on clicking the login button
+    function createAccount() {
+      //avoid refreshing page
+      event.preventDefault();
+
+      //avoid double submission
+      document.getElementById("btnCreate").disabled = true;
+      document.getElementById("z").hidden = true;
+
+      var email = document.getElementById("txtEmail");
+      var dname = document.getElementById("txtDname");
+      var password = document.getElementById("txtPassword");
+      var confirmPW = document.getElementById("txtConfirmPW");
+
+      if (!email.validity.valid || !dname.validity.valid || !password.validity.valid || password.value != confirmPW.value) {
+        document.getElementById("z").hidden = false;
+        document.getElementById("z").innerHTML =
+          '<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span><br>';
+
+        if (!email.validity.valid) {
+          document.getElementById("z").innerHTML = document.getElementById("z").innerHTML +
+            "Invalid E-mail Address <br>";
+          email.classList.add('has-error');
+        }
+        if (!dname.validity.valid) {
+          document.getElementById("z").innerHTML = document.getElementById("z").innerHTML +
+            "Display Name cannot be empty <br>";
+          dname.classList.add('has-error');
+        }
+        if (!password.validity.valid) {
+          document.getElementById("z").innerHTML = document.getElementById("z").innerHTML +
+            "Password cannot be empty<br>";
+          password.classList.add('has-error');
+        }
+        if (password.value != confirmPW.value) {
+          document.getElementById("z").innerHTML = document.getElementById("z").innerHTML +
+            "Passwords do not match<br>";
+          confirmPW.classList.add('has-error');
+        }
+        document.getElementById("btnCreate").disabled = false;
+
+        return false;
+      } else {
+        //grabs the email and display name field vales and puts them in an object
+        var JSONuser = {
+          "email": email.value.toLowerCase(),
+          "dname": dname.value,
+          "password": password.value
+        }
+        //sends the object to the server
+        socket.emit('createUser', JSONuser);
+        document.getElementById("btnCreate").disabled = false;
+      }
+
+    };
+  </script>
 </body>
 
 </html>
