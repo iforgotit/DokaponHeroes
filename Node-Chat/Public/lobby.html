@@ -136,9 +136,9 @@
             socket.on('attendance', function () {
                 var userString = "";
                 if (getSeletedClass() !== undefined) {
-                    userString = localStorage.dname + " - " + selectedClass;
+                    userString = sessionStorage.dname + " - " + selectedClass;
                 } else {
-                    userString = localStorage.dname;
+                    userString = sessionStorage.dname;
                 }
                 socket.emit('checkin', userString);
                 var userlist = document.getElementById("ulUsers");
@@ -187,7 +187,7 @@
                 } else {
                     var cleanTxt = escapeHtml(document.getElementById("txtMsg").value);
                     var JSONmsg = {
-                        "dname": localStorage.dname,
+                        "dname": sessionStorage.dname,
                         "msg": cleanTxt
                     };
                     socket.emit('msg', JSONmsg);
@@ -198,7 +198,7 @@
             }
 
             function joinChat() {
-                if(localStorage._id == undefined){
+                if(sessionStorage._id == undefined){
                     window.location.href = 'index.html';
                     return false;
                 }

@@ -56,7 +56,7 @@
             var socket = io();
 
             var chat = document.getElementById("lichat");
-            var chatHTML = '<a class="list-group-item"><h4 class="list-group-item-heading">Welcome ' + localStorage
+            var chatHTML = '<a class="list-group-item"><h4 class="list-group-item-heading">Welcome ' + sessionStorage
                 .dname +
                 '</h4><p class="list-group-item-text">Trash talk down here</p></a>';
             chat.innerHTML = chat.innerHTML + chatHTML;
@@ -69,7 +69,7 @@
             });
 
             socket.on('attendance', function () {
-                socket.emit('checkin', localStorage.dname);
+                socket.emit('checkin', sessionStorage.dname);
                 var userlist = document.getElementById("ulUsers");
                 while (userlist.hasChildNodes()) {
                     userlist.removeChild(userlist.lastChild);
@@ -104,7 +104,7 @@
                 } else {
                     var cleanTxt = escapeHtml(document.getElementById("txtMsg").value);
                     var JSONmsg = {
-                        "dname": localStorage.dname,
+                        "dname": sessionStorage.dname,
                         "msg": cleanTxt
                     };
                     socket.emit('msg', JSONmsg);
@@ -115,7 +115,7 @@
             }
 
             function joinChat() {
-                if (localStorage._id == undefined) {
+                if (sessionStorage.id == undefined) {
                     window.location.href = 'index.html';
                     return false;
                 }

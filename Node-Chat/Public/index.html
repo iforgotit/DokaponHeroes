@@ -19,72 +19,112 @@
 
 <body onload="checkAccount()">
   <div class="container">
-
     <form class="form-signin col-md-6" onsubmit="login()">
-      <h2 class="form-signin-heading">Who dis?</h2>
-      <div 
-      <input id="btnAccount" type="button" class="btn btn-lg btn-primary col-md-3" onclick="newAccount()" value="Im new">
-      <!--Email field-->
-      <label for="inputEmail" class="sr-only">Email address</label>
-      <input type="text" id="inputEmail" class="form-control" placeholder="Email address" autofocus><br>
-      <!--Display name field-->
-      <label for="password" class="sr-only">Display Name</label>
-      <input type="password" id="password" class="form-control" placeholder="Password" required><br>
-      <!--login button-->
-      <input id="btnLogin" type="button" class="btn btn-lg btn-primary col-md-3" onclick="login()" value="LETS GO">
+      <table style="width:100%">
+        <tr>
+          <td>
+            <h1 class="form-signin-heading" id="title">Who dis?</h1>
+          </td>
+          <td align="right">
+            <button id="btnAccount" type="button" class="btn btn-lg btn-primary" onclick="newAccount()">I'm New</button>
+          </td>
+        </tr>
+      </table>
+      <div>
+        <!--Email field-->
+        <label for="txtEmail" class="sr-only">Email address</label>
+        <input type="email" id="txtEmail" class="form-control" placeholder="Email address" required autofocus><br>
+        <!--Display name field-->
+        <label for="txtPassword" class="sr-only">Display Name</label>
+        <input type="password" id="txtPassword" class="form-control" placeholder="Password" required><br>
+        <!--login button-->
+        <button id="btnLogin" type="button" class="btn btn-lg btn-primary col-md-3" onclick="login()">LET'S GO</button>
+      </div>
     </form>
-    <p id="z"></p>
+  </div><br>
+  <div class="container col-md-2"></div>
+  <div class="col-md-4 alert alert-danger" id="z" role="alert" hidden>
+
   </div>
+
   <!-- /container -->
   <script src="/socket.io/socket.io.js"></script>
   <script>
     var socket = io();
-    //receiving an id back. This is triggered if the user exist on login or when a new user is created
+    //On successful login return user information and set into the session storage
     socket.on('userJSON', function (msg) {
-      //Sets id in local storage
-      document.getElementById("z").innerHTML = "test";
-      localStorage.setItem('user', JSON.stringify(msg));
-      localStorage.setItem('id', msg._id);
-      localStorage.setItem('dname', msg.dname);
-      localStorage.setItem('email', msg.email);
+      //Set session storage
+      sessionStorage.setItem('id', msg._id);
+      sessionStorage.setItem('dname', msg.dname);
+      sessionStorage.setItem('email', msg.email);
       //moves user to the landing page
       window.location.href = 'landing.html';
+    });
+    socket.on('unsuccessful', function (msg) {
+      //On failed authentication
+      document.getElementById("z").hidden = false;
+      document.getElementById("z").innerHTML =
+        '<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span><br>Incorrect username or password';
     });
   </script>
   <script>
     //executed on clicking the login button
     function login() {
       event.preventDefault();
+
       document.getElementById("btnLogin").disabled = true;
-      if (document.getElementById("inputEmail").length == 0) {
-        document.getElementById("inputEmail").classList.add('has-error');
-        if (document.getElementById("password").length == 0) {
-          document.getElementById("password").classList.add('has-error');
+      document.getElementById("z").hidden = true;
+
+      var email = document.getElementById("txtEmail");
+      var password = document.getElementById("txtPassword");
+
+      if (!email.validity.valid || !password.validity.valid) {
+        document.getElementById("z").hidden = false;
+        document.getElementById("z").innerHTML =
+          '<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span><br>';
+
+        if (!email.validity.valid) {
+          document.getElementById("z").innerHTML = document.getElementById("z").innerHTML +
+            "Invalid E-mail Address <br>";
+          email.classList.add('has-error');
         }
-        return false;
+        if (!password.validity.valid) {
+          document.getElementById("z").innerHTML = document.getElementById("z").innerHTML +
+            "Password cannot be empty <br>";
+          password.classList.add('has-error');
+        }
+
+        document.getElementById("btnLogin").disabled = false;
+      } else {
+        var JSONuser = {
+          "email": email.value.toLowerCase(),
+          "password": password.value
+        }
+        //sends the object to the server
+        socket.emit('authenticate', JSONuser);
+        document.getElementById("btnLogin").disabled = false;
       }
-      if (document.getElementById("password").length == 0) {
-        document.getElementById("password").classList.add('has-error');
-        return false;
-      }
-      //grabs the email and display name field vales and puts them in an object
-      var JSONuser = {
-        "email": document.getElementById("inputEmail").value,
-        "password": document.getElementById("password").value
-      }
-      //sends the object to the server
-      socket.emit('user', JSONuser);
-      document.getElementById("btnLogin").disabled = false;
-    };
-    //Executed on loading page, checks if the user has an id in local storage  
+
+    }
+
     function checkAccount() {
-      if (typeof (Storage) !== 'undefined') {
-        if (localStorage.user) {
-          window.location.href = 'landing.html';
+      var query = window.location.search.substring(1);
+      var vars = query.split("&");
+      for (var i = 0; i < vars.length; i++) {
+        var pair = vars[i].split("=");
+        if (pair[0]) {
+          document.getElementById("title").innerHTML = "Successfully Created Account";
+          document.getElementById("btnAccount").style.visibility = 'hidden';
         }
+      }
+
+      if (sessionStorage.id) {
+        window.location.href = 'landing.html';
+        return false;
       }
     }
-    function newAccount(){
+
+    function newAccount() {
       window.location.href = 'createAccount.html';
     }
   </script>

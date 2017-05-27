@@ -3,16 +3,16 @@ var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var port = process.env.PORT || 3000;
+var mongodb = require('./mongo');
 var MongoClient = require('mongodb').MongoClient,
   assert = require('assert');
 var bcrypt = require('bcrypt');
 
-const saltRounds = 10;
 var numUsersLobby = 0;
 var waitformore = 0;
 
-http.listen(80, function () {
-  console.log('listening on *:80');
+http.listen(3000, function () {
+  console.log('listening on *:3000');
 });
 
 //sets default page
@@ -28,7 +28,7 @@ io.on('connection', function (socket) {
 
   console.log('a user connected');
 
-  socket.on('user', function (user) {
+  socket.on('createUser', function (user) {
 
     var url = 'mongodb://localhost:27017/dkmmc';
     // Use connect method to connect to the server
@@ -36,29 +36,83 @@ io.on('connection', function (socket) {
       assert.equal(null, err);
       console.log("Connected correctly to server");
 
-      authenticate(db, user, function () {
+      searchUserCreate(db, user, function () {
+        db.close();
+      });
+    });
+  });
+
+  var searchUserCreate = function (db, user, callback) {
+    // Get the documents collection
+    var collection = db.collection('users');
+    // Find some documents
+    collection.find({
+      'email': user.email
+    }).toArray(function (err, eUser) {
+      assert.equal(err, null);
+      if (!eUser[0]) {
+        insertUser(db, user, function () {
+          db.close();
+        });
+      } else {
+        socket.emit('createFailure');
+        console.log("Found the following records");
+        console.log(eUser);
+        callback(eUser);
+      }
+
+    });
+  }
+  var insertUser = function (db, user, callback) {
+    // Get the documents collection
+    var collection = db.collection('users');
+    // Insert some documents
+    bcrypt.hash(user.password, 10, function (err, hash) {
+      collection.insert({
+        'email': user.email,
+        'dname': user.dname,
+        'password': hash
+      }, function (err, result) {
+        assert.equal(err, null);
+        socket.emit('createSuccess');
+        console.log("Inserted user into the collection");
+        callback(result);
+      });
+    });
+  };
+
+  socket.on('authenticate', function (user) {
+
+    var url = 'mongodb://localhost:27017/dkmmc';
+    // Use connect method to connect to the server
+    MongoClient.connect(url, function (err, db) {
+      assert.equal(null, err);
+      console.log("Connected correctly to server");
+
+      findUser(db, user, function () {
         db.close();
       });
     });
 
-    function authenticate(user) {
+    var findUser = function (db, iUser, callback) {
+      // Get the users collection
       var collection = db.collection('users');
-      // Find some documents
+      // Find some user
       collection.find({
-        'email': user.email
-      }).toArray(function (err, rUser) {
+        'email': iUser.email
+      }).toArray(function (err, user) {
         assert.equal(err, null);
-        console.log("Found the following records");
-        console.log(rUser);
-        bcrypt.compare(user.password, rUser.password, function (err, res) {
-          // res === true
-        });
-        bcrypt.compare(user.password, rUser.password, function (err, res) {
-          // res === false
-        });
-        callback(docs);
+        if (user[0]) {
+          if (bcrypt.compareSync(iUser.password, user[0].password)) {
+            socket.emit('userJSON', user[0]);
+          } else {
+            socket.emit('unsuccessful');
+          }
+        } else {
+          socket.emit('unsuccessful');
+        }
       });
-    }
+    };
   });
 
   socket.on('newUser', function () {
