@@ -3,7 +3,6 @@ var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var port = process.env.PORT || 3000;
-var mongodb = require('./mongo');
 var MongoClient = require('mongodb').MongoClient,
   assert = require('assert');
 var bcrypt = require('bcrypt');
@@ -11,8 +10,8 @@ var bcrypt = require('bcrypt');
 var numUsersLobby = 0;
 var waitformore = 0;
 
-http.listen(3000, function () {
-  console.log('listening on *:3000');
+http.listen(80, function () {
+  console.log('listening on *:80');
 });
 
 //sets default page
