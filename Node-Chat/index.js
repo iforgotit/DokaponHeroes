@@ -103,9 +103,7 @@ io.on('connection', function (socket) {
       }).toArray(function (err, user) {
         assert.equal(err, null);
         if (user[0]) {
-          console.log("1 : " + user[0]._id);
           if (bcrypt.compareSync(iUser.password, user[0].password)) {
-            console.log("4 : " + user[0]._id);
             socket.emit('userJSON', user[0]);
           } else {
             socket.emit('unsuccessful');
