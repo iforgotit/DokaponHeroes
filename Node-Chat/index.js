@@ -183,7 +183,6 @@ lobbynsp.on('connection', function (socket) {
     } else {
       status = "Start Game : " + waitformore;
     }
-    console.log(status);
     lobbynsp.emit('status', status);
   }
 });
