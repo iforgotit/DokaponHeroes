@@ -8,7 +8,8 @@ var MongoClient = require('mongodb').MongoClient,
 var bcrypt = require('bcrypt');
 
 var numUsersLobby = 0;
-var waitformore = 0;
+
+var waitformore = Date.now() + 15000;
 
 http.listen(80, function () {
   console.log('listening on *:80');
@@ -173,15 +174,14 @@ lobbynsp.on('connection', function (socket) {
 
     if (numUsersLobby == 0) {
       status = "Dead";
-      waitformore = 0;
+      waitformore = Date.now() + 15000;
     } else if (numUsersLobby == 1) {
       status = "Not Enough Players (" + numUsersLobby + ")";
-      waitformore++;
-    } else if (waitformore <= 15) {
-      status = "Wait " + waitformore + " seconds for some more players";
-      waitformore++;
+    } else if (Date.now() < waitformore) {
+      timeleft = Math.round( (waitformore - Date.now())/1000)
+      status = "Wait " + timeleft + " seconds for some more players";
     } else {
-      status = "Start Game : " + waitformore;
+      status = "Start Game";
     }
     lobbynsp.emit('status', status);
   }

@@ -102,7 +102,7 @@
                     </div>
                     <form class="form-inline" onsubmit="send()">
                         <div id="fgMsg" class="form-group col-sm-10">
-                            <input type="text" class="form-control" style="width : 100%" id="txtMsg" placeholder="Message">
+                            <input type="text" class="form-control" style="width : 100%" id="txtMsg" placeholder="Message" autocomplete="off">
                             <p id="limit"></p>
                         </div>
                         <input id="btnSend" type="button" class="btn btn-info" onclick="send()" value="Send">
@@ -198,7 +198,7 @@
             }
 
             function joinChat() {
-                if(sessionStorage._id == undefined){
+                if (sessionStorage.id == undefined) {
                     window.location.href = 'index.html';
                     return false;
                 }
