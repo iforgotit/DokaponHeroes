@@ -5,7 +5,9 @@ var io = require('socket.io')(http);
 var port = process.env.PORT || 3000;
 var MongoClient = require('mongodb').MongoClient,
   assert = require('assert');
+var bcrypt = require('bcrypt');
 
+const saltRounds = 10;
 var numUsersLobby = 0;
 var waitformore = 0;
 
