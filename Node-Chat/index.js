@@ -3,7 +3,6 @@ var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var port = process.env.PORT || 3000;
-var mongodb = require('./mongo');
 var MongoClient = require('mongodb').MongoClient,
   assert = require('assert');
 var bcrypt = require('bcrypt');
@@ -11,8 +10,8 @@ var bcrypt = require('bcrypt');
 var numUsersLobby = 0;
 var waitformore = 0;
 
-http.listen(3000, function () {
-  console.log('listening on *:3000');
+http.listen(80, function () {
+  console.log('listening on *:80');
 });
 
 //sets default page
@@ -36,6 +35,7 @@ io.on('connection', function (socket) {
       assert.equal(null, err);
       console.log("Connected correctly to server");
 
+<<<<<<< HEAD
       searchUserCreate(db, user, function () {
         db.close();
       });
@@ -90,15 +90,23 @@ io.on('connection', function (socket) {
       console.log("Connected correctly to server");
 
       findUser(db, user, function () {
+=======
+      authenticate(db, user, function () {
+>>>>>>> master
         db.close();
       });
     });
 
+<<<<<<< HEAD
     var findUser = function (db, iUser, callback) {
       // Get the users collection
+=======
+    function authenticate(user) {
+>>>>>>> master
       var collection = db.collection('users');
       // Find some user
       collection.find({
+<<<<<<< HEAD
         'email': iUser.email
       }).toArray(function (err, user) {
         assert.equal(err, null);
@@ -113,8 +121,22 @@ io.on('connection', function (socket) {
         } else {
           socket.emit('unsuccessful');
         }
+=======
+        'email': user.email
+      }).toArray(function (err, rUser) {
+        assert.equal(err, null);
+        console.log("Found the following records");
+        console.log(rUser);
+        bcrypt.compare(user.password, rUser.password, function (err, res) {
+          // res === true
+        });
+        bcrypt.compare(user.password, rUser.password, function (err, res) {
+          // res === false
+        });
+        callback(docs);
+>>>>>>> master
       });
-    };
+    }
   });
 
   socket.on('newUser', function () {
