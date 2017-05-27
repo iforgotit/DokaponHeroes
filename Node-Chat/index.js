@@ -3,7 +3,6 @@ var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var port = process.env.PORT || 3000;
-var mongodb = require('./mongo');
 var MongoClient = require('mongodb').MongoClient,
   assert = require('assert');
 
@@ -35,35 +34,29 @@ io.on('connection', function (socket) {
       assert.equal(null, err);
       console.log("Connected correctly to server");
 
-      findDocuments(db, user.email, function () {
+      authenticate(db, user, function () {
         db.close();
       });
     });
 
-    var findDocuments = function (db, email, callback) {
-      // Get the documents collection
+    function authenticate(user) {
       var collection = db.collection('users');
       // Find some documents
       collection.find({
-        'email': email
-      }).toArray(function (err, docs) {
+        'email': user.email
+      }).toArray(function (err, rUser) {
         assert.equal(err, null);
-        if (docs[0]) {
-          console.log("4 : " + docs[0]._id);
-          socket.emit('userJSON', docs[0]);
-          callback(docs[0]._id);
-        } else {
-          console.log("1 : " + JSON.stringify(user));
-          typeof mongodb.insertUser(user, function () {
-            console.log("2 : " + JSON.stringify(user));
-            findDocuments(db, user.email, function () {
-              console.log("3 : " + user.email);
-              db.close();
-            });
-          });
-        }
+        console.log("Found the following records");
+        console.log(rUser);
+        bcrypt.compare(user.password, rUser.password, function (err, res) {
+          // res === true
+        });
+        bcrypt.compare(user.password, rUser.password, function (err, res) {
+          // res === false
+        });
+        callback(docs);
       });
-    };
+    }
   });
 
   socket.on('newUser', function () {
@@ -114,7 +107,7 @@ lobbynsp.on('connection', function (socket) {
     lobbynsp.emit('chat', msg);
   });
 
-  socket.on('startGame',function () {
+  socket.on('startGame', function () {
     lobbynsp.emit('ggTimer', 'Fuck you Rick');
   });
 
@@ -127,7 +120,7 @@ lobbynsp.on('connection', function (socket) {
       status = "Dead";
       waitformore = 0;
     } else if (numUsersLobby == 1) {
-      status = "Not Enough Players (" + numUsersLobby +")";
+      status = "Not Enough Players (" + numUsersLobby + ")";
       waitformore++;
     } else if (waitformore <= 15) {
       status = "Wait " + waitformore + " seconds for some more players";
@@ -139,4 +132,3 @@ lobbynsp.on('connection', function (socket) {
     lobbynsp.emit('status', status);
   }
 });
-
