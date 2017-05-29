@@ -1,57 +1,195 @@
+<!doctype html>
 <html>
 
 <head>
-    <Title>Making a game</title>
-    <script src="https://code.createjs.com/easeljs-0.8.0.min.js"></script>
-    <script src="https://code.createjs.com/tweenjs-0.6.0.min.js"></script>
-    <script src="https://code.createjs.com/preloadjs-0.6.0.min.js"></script>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="../../favicon.ico">
+
+    <title>Dokapon Heroes</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="../../assets/css/bootstrap.min.css" rel="stylesheet">
+
+    <script src="https://code.createjs.com/easeljs-0.8.2.min.js"></script>
+    <script src="https://code.createjs.com/tweenjs-0.6.2.min.js"></script>
+    <script src="https://code.createjs.com/preloadjs-0.6.2.min.js"></script>
 </head>
 
-<body onload="init();" style=" background: lightblue;">
-    <canvas id="demoCanvas" width="320px" height="320px" style="background: #fff; margin:10px"></canvas>
-    <p id="x"></p>
-    <p id="y"></p>
-    <p id="z"></p>
+<body onload="init();">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-10">
+                <canvas id="battlefield"></canvas>
+                <p id="x"></p>
+                <p id="y"></p>
+                <p id="z"></p>
+            </div>
+            <div>
+                Turn Timer:
+                <p id="time"></p>
+            </div>
+        </div>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
     <script>
+        var queue;
+        var stage = new createjs.Stage("battlefield");
+        var bfgridxy = 5;
+
+        function stop() {
+            if (preload != null) {
+                preload.close();
+            }
+        }
+
+        function getbfgridxy() {
+            return bfgridxy;
+        }
+
         function init() {
-            
-            var stage = new createjs.Stage("demoCanvas");
+            // if (sessionStorage.id == undefined) {
+            //     window.location.href = 'index.html';
+            //     return false;
+            // }
+
+            document.getElementById("battlefield").width = getbfgridxy() * 100;
+            document.getElementById("battlefield").height = getbfgridxy() * 100;
+
+            queue = new createjs.LoadQueue(true);
+
+            queue.on("complete", handleComplete);
+            queue.on("error", handleError);
+
+            loadAsset();
+        }
+
+        function handleError(event) {
+            var item = event.data;
+            var div = document.getElementById("z");
+            if (div != null) {
+                div.innerHTML = "<label>Error " + (item.id == "NoFileHere.png" ? ":)" : ":(") + "</label>";
+                div.className = "gridBox error";
+            }
+        }
+
+        function loadAsset() {
+            var div = document.getElementById("z");
+            div.innerHTML = "<label>Loading...</label>";
+
+            queue.loadManifest([{
+                id: "grass",
+                src: "../../assets/img/grass.png"
+            }, {
+                id: "mightData",
+                src: "../../assets/sprites/might.json",
+                type: "spritesheet",
+                crossOrigin: true
+            }]);
+        }
+
+        function handleComplete() {
+            var socket = io('/ingame');
+
+            document.getElementById("z").innerHTML = "";
+
             createjs.Touch.enable(stage);
             stage.enableMouseOver(10);
-            var padding = 1;
-            var width = 55;
-            var height = 55;
-            var cols = 15;
-            for(var i=0;i<200;i++) {
-                var s = new createjs.Shape();
-                s.overColor = "#3281FF"
-                s.outColor = "#FF0000"
-                s.graphics.beginFill(s.outColor).drawRect(0, 0, width, height).endFill();
-                s.x = (width + padding) * (i%cols);
-                s.y = (height + padding) * (i/cols|0);
-                s.onMouseOver = handleMouseOver;
-                s.onMouseOut = handleMouseOut;
-                stage.addChild(s)
+
+            var grass = queue.getResult("grass");
+            var spriteSheet = queue.getResult("mightData");
+
+            var hero = new createjs.Sprite(spriteSheet, "stand");
+            hero.x = 50;
+            hero.y = 50;
+            // The good stuff
+            for (var y = 0; y < (getbfgridxy()); y++) {
+                for (var x = 0; x < (getbfgridxy()); x++) {
+                    var grid = new createjs.Shape();
+                    grid.x = x * 100;
+                    grid.y = y * 100;
+                    grid.overStroke = "#00FF00";
+                    grid.outStroke = "#3281FF";
+                    grid.disableStroke = "#FF0000";
+                    grid.on("mouseover", handleMouseEvent);
+                    grid.on("mouseout", handleMouseEvent);
+                    grid.on("click", handleMouseEvent);
+                    grid.name = {
+                        'x': x,
+                        'y': y
+                    };
+                    grid.graphics.beginStroke(grid.outStroke).beginBitmapFill(grass).setStrokeStyle(2).drawRect(
+                        0, 0,
+                        98, 98).endStroke();
+                    stage.addChild(grid);
+                }
             }
+            stage.addChild(hero);
+            stage.update();
+            createjs.Ticker.setFPS(30);
+            createjs.Ticker.on("tick", handleTick);
 
-            createjs.Ticker.addEventListener("tick", tick);
-            //createjs.Ticker.addListener(stage);
-
-            function handleMouseOver(event) {
-            var target = event.target;
-            target.graphics.clear().beginFill(target.overColor).drawRect(0, 0, width, height).endFill();
-            }
-
-            function handleMouseOut(event) {
+            function handleMouseEvent(event) {
                 var target = event.target;
-                target.graphics.clear().beginFill(target.outColor).drawRect(0, 0, width, height).endFill();
+                if (event.type == "mouseover") {
+                    target.graphics.beginStroke(target.overStroke).setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
+                } else if (event.type == "mouseout") {
+                    target.graphics.beginStroke(target.outStroke).setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
+                } else if (event.type == "click") {
+                    document.getElementById("z").innerHTML = "type: " + event.type + " - " + target.name.x +
+                        " : " + target.name.y;
+                    var turnJSON = {"playerID" : sessionStorage.id,"stageX" : event.stageX,"target" : target.name}
+                    socket.emit('turnData', turnJSON);
+                }
             }
 
-            function tick() {
-            stage.update();   
+            socket.on('endTurn', function (endTurnData) {
+                var target = endTurnData.target;
+                document.getElementById("x").innerHTML = endTurnData.playerID;
+                if (hero.x > endTurnData.stageX) {
+                    hero.scaleX = -1;
+                    hero.gotoAndPlay("walk");
+                } else {
+                    hero.gotoAndPlay("walk");
+                    hero.scaleX = 1;
+                }
+
+                createjs.Tween.get(hero, {
+                        loop: false
+                    })
+                    .to({
+                        x: (target.x * 100) + 50,
+                        y: (target.y * 100) + 50
+                    }, 1000)
+                    .call(setStandanimation);
+
+                function setStandanimation() {
+                    hero.gotoAndPlay("stand");
+                }
+            });
+
+            function handleTick() {
+                stage.update();
             }
-                    
+
+            socket.on('getGame', function () {
+                var query = window.location.search.substring(1);
+                var vars = query.split("&");
+                for (var i = 0; i < vars.length; i++) {
+                    var pair = vars[i].split("=");
+                    if (pair[1]) {
+                        socket.emit('gameID', pair[1])
                     }
+                }
+            });
+
+            socket.on('gameTime', function (time) {
+                document.getElementById("time").innerHTML = time;
+            });
+        }
     </script>
 </body>
 

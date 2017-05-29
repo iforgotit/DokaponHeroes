@@ -1,5 +1,6 @@
 var MongoClient = require('mongodb').MongoClient
   , assert = require('assert');
+var ObjectId = require('mongodb').ObjectID;
 
 // Connection URL
 var url = 'mongodb://localhost:27017/dkmmc';
@@ -16,12 +17,13 @@ MongoClient.connect(url, function(err, db) {
 
 var findDocuments = function(db, callback) {
   // Get the documents collection
-  var collection = db.collection('users');
+  var collection = db.collection('game');
   // Find some documents
-  collection.find({}).toArray(function(err, docs) {
+  collection.find({_id:ObjectId("592b8d51bcf10301d0a09b60"),
+      turn: {endTime: "1496026464522"}}).toArray(function(err, docs) {
     assert.equal(err, null);
     console.log("Found the following records");
-    console.log(docs);
+    console.log(JSON.stringify(docs));
     callback(docs);
   });      
 }

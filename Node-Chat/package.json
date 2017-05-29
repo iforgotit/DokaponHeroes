@@ -5,6 +5,7 @@
   "dependencies": {
     "bcrypt": "^1.0.2",
     "express": "^4.15.2",
+    "forever": "^0.15.3",
     "mongodb": "^2.2.26",
     "passport": "^0.3.2",
     "passport-local": "^1.0.0",

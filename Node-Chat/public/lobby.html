@@ -128,9 +128,15 @@
             });
 
             socket.on('ggTimer', function (time) {
+                socket.emit('killTimer');
+                document.getElementById("btnStartGame").classList.add('disabled');
+                document.getElementById("btnStartGame").disabled = true;
                 var chat = document.getElementById("lichat");
-                var chatHTML = '<p class="list-group-item-text">' + time + '...</p></a>';
+                var chatHTML =
+                    '<a class="list-group-item"><h4 class="list-group-item-heading">Game Starting in...</h4><p class="list-group-item-text">' +
+                    time + '...</p></a>';
                 chat.innerHTML = chat.innerHTML + chatHTML;
+                document.getElementById("btnStartGame").value = "Game Starting";
             });
 
             socket.on('attendance', function () {
@@ -164,6 +170,15 @@
                     document.getElementById("btnStartGame").disabled = true;
                 }
                 document.getElementById("btnStartGame").value = status;
+            });
+
+            socket.on('gameID', function (gameData) {
+                var chat = document.getElementById("lichat");
+                var chatHTML =
+                    '<a class="list-group-item"><h4 class="list-group-item-heading">GameID</h4><p class="list-group-item-text">' +
+                    JSON.stringify(gameData) + '...</p></a>';
+                chat.innerHTML = chat.innerHTML + chatHTML;
+                window.location.href = 'grid.html?game='+gameData._id;
             });
 
             function escapeHtml(text) {
@@ -220,11 +235,8 @@
             }
 
             function startGame() {
-                document.getElementById("btnStartGame").classList.remove('disabled');
-                var chat = document.getElementById("lichat");
-                var chatHTML =
-                    '<a class="list-group-item"><h4 class="list-group-item-heading">Game Starting in...</h4>';
-                chat.innerHTML = chat.innerHTML + chatHTML;
+                document.getElementById("btnStartGame").classList.add('disabled');
+                document.getElementById("btnStartGame").disabled = true;
                 socket.emit('startGame');
             }
 
