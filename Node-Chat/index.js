@@ -43,11 +43,9 @@ io.on('connection', function (socket) {
     // Use connect method to connect to the server
     MongoClient.connect(url, function (err, db) {
       assert.equal(null, err);
-      console.log("searchUserCreate connect to DB");
 
       searchUserCreate(db, user, function () {
         db.close();
-        console.log("Successfully terminated connect to DB");
       });
     });
   });
@@ -63,7 +61,6 @@ io.on('connection', function (socket) {
       if (!eUser[0]) {
         insertUser(db, user, function () {
           db.close();
-          console.log("Successfully terminated connect to DB");
         });
       } else {
         socket.emit('createFailure');
@@ -94,11 +91,9 @@ io.on('connection', function (socket) {
     // Use connect method to connect to the server
     MongoClient.connect(url, function (err, db) {
       assert.equal(null, err);
-      console.log("authenticate connect to DB");
 
       findUser(db, user, function () {
         db.close();
-        console.log("Successfully terminated connect to DB");
       });
     });
 
@@ -142,7 +137,6 @@ io.on('connection', function (socket) {
   });
 
   socket.on('msg', function (msg) {
-    console.log(msg);
     io.emit('chat', msg);
   });
 });
@@ -190,10 +184,8 @@ lobbynsp.on('connection', function (socket) {
     // Use connect method to connect to the server
     MongoClient.connect(url, function (err, db) {
       assert.equal(null, err);
-      console.log("startGame connect to DB");
       createGame(db, function () {
         db.close();
-        console.log("Successfully terminated connect to DB");
       });
     });
 
@@ -209,7 +201,6 @@ lobbynsp.on('connection', function (socket) {
           '_id': result.ops[0]._id,
           'startTime': result.ops[0].startTime
         }
-        console.log(gameData);
         lobbynsp.emit('gameID', gameData);
         callback(result);
       });
@@ -315,7 +306,6 @@ ingame.on('connection', function (socket) {
       function (err, result) {
         assert.equal(err, null);
         assert.equal(1, result.result.n);
-        console.log("added turn");
         callback();
       });
   }
@@ -326,14 +316,12 @@ ingame.on('connection', function (socket) {
     if (timeLeft < 0) {
       MongoClient.connect(url, function (err, db) {
         assert.equal(null, err);
-        console.log("Connected correctly to server");
 
         getTurn(db, function () {
           db.close();
+          setGameTime(getGameTime() + 3000);
         });
-        
       });
-      setGameTime(getGameTime() + 3000);
 
     } else if (timeLeft > 15) {
       socket.emit('gameTime', 'Taking turn now');
@@ -343,20 +331,18 @@ ingame.on('connection', function (socket) {
 
   }
   var getTurn = function (db, callback) {
-    // Get the documents collection
+    // Get the turn collection
     var collection = db.collection('turn');
-    // Find some documents
+    // Find turn
     collection.find({
       gameID: getGameID(),
       endTime: getGameTime()
     }).toArray(function (err, turnDB) {
       assert.equal(err, null);
-      console.log("Found the following records");
       if (turnDB.length !=0) {
         var endTurnData = turnDB[0];
         console.log(JSON.stringify(endTurnData));
         ingame.in(getGameID()).emit('endTurn', endTurnData);
-        callback();
       }
       callback();
     });

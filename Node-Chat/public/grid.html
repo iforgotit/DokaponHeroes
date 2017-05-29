@@ -5,9 +5,6 @@
     <meta http-equiv="content-type" content="text/html;charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <meta name="description" content="">
-    <meta name="author" content="">
-    <link rel="icon" href="../../favicon.ico">
 
     <title>Dokapon Heroes</title>
 
@@ -28,9 +25,11 @@
                 <p id="y"></p>
                 <p id="z"></p>
             </div>
-            <div>
+            <div class="col-sm-2">
                 Turn Timer:
                 <p id="time"></p>
+                <input id="btnReturn" type="button" class="btn btn-lg btn-primary" style="width:100%; white-space:normal;" onclick="landing()"
+                    value="Return to Main Lobby">
             </div>
         </div>
     </div>
@@ -48,6 +47,10 @@
 
         function getbfgridxy() {
             return bfgridxy;
+        }
+
+        function landing() {
+            window.location.href = 'landing.html';
         }
 
         function init() {
@@ -93,6 +96,7 @@
 
         function handleComplete() {
             var socket = io('/ingame');
+            var turnSelected = undefined;
 
             document.getElementById("z").innerHTML = "";
 
@@ -112,8 +116,9 @@
                     grid.x = x * 100;
                     grid.y = y * 100;
                     grid.overStroke = "#00FF00";
-                    grid.outStroke = "#3281FF";
+                    grid.outStroke = "#000000";
                     grid.disableStroke = "#FF0000";
+                    grid.clickStroke = "#3281FF";
                     grid.on("mouseover", handleMouseEvent);
                     grid.on("mouseout", handleMouseEvent);
                     grid.on("click", handleMouseEvent);
@@ -121,8 +126,7 @@
                         'x': x,
                         'y': y
                     };
-                    grid.graphics.beginStroke(grid.outStroke).beginBitmapFill(grass).setStrokeStyle(2).drawRect(
-                        0, 0,
+                    grid.graphics.beginStroke(grid.outStroke).beginBitmapFill(grass).setStrokeStyle(2).drawRect(0, 0,
                         98, 98).endStroke();
                     stage.addChild(grid);
                 }
@@ -134,20 +138,31 @@
 
             function handleMouseEvent(event) {
                 var target = event.target;
-                if (event.type == "mouseover") {
+                if (event.type == "mouseover" && turnSelected == undefined) {
                     target.graphics.beginStroke(target.overStroke).setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
-                } else if (event.type == "mouseout") {
+                } else if (event.type == "mouseout" && turnSelected == undefined) {
                     target.graphics.beginStroke(target.outStroke).setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
-                } else if (event.type == "click") {
+                } else if (event.type == "click" && turnSelected == undefined) {
+                    target.graphics.beginStroke(target.clickStroke).setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
+                    turnSelected = target;
                     document.getElementById("z").innerHTML = "type: " + event.type + " - " + target.name.x +
                         " : " + target.name.y;
-                    var turnJSON = {"playerID" : sessionStorage.id,"stageX" : event.stageX,"target" : target.name}
+                    var turnJSON = {
+                        "playerID": sessionStorage.id,
+                        "stageX": event.stageX,
+                        "target": target.name
+                    }
                     socket.emit('turnData', turnJSON);
                 }
             }
 
             socket.on('endTurn', function (endTurnData) {
                 var target = endTurnData.target;
+                if (turnSelected != undefined) {
+                    turnSelected.graphics.beginStroke(turnSelected.outStroke).setStrokeStyle(2).drawRect(0, 0,
+                        98, 98).endStroke();
+                    turnSelected = undefined;
+                }
                 document.getElementById("x").innerHTML = endTurnData.playerID;
                 if (hero.x > endTurnData.stageX) {
                     hero.scaleX = -1;

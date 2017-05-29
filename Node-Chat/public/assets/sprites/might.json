@@ -71,7 +71,7 @@
             "speed": 0.3
         },
         "stand": {
-            "frames": [46, 48, 49, 53, 50],
+            "frames": [46, 48, 49, 48,46],
             "next": "stand",
             "speed": 0.2
         }
