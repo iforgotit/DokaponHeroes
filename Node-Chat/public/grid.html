@@ -54,10 +54,10 @@
         }
 
         function init() {
-            // if (sessionStorage.id == undefined) {
-            //     window.location.href = 'index.html';
-            //     return false;
-            // }
+            if (sessionStorage.id == undefined) {
+                window.location.href = 'index.html';
+                return false;
+            }
 
             document.getElementById("battlefield").width = getbfgridxy() * 100;
             document.getElementById("battlefield").height = getbfgridxy() * 100;
@@ -88,7 +88,7 @@
                 src: "../../assets/img/grass.png"
             }, {
                 id: "mightData",
-                src: "../../assets/sprites/might.json",
+                src: "../../assets/sprites/cunning.json",
                 type: "spritesheet",
                 crossOrigin: true
             }]);
@@ -108,7 +108,7 @@
 
             var hero = new createjs.Sprite(spriteSheet, "stand");
             hero.x = 50;
-            hero.y = 50;
+            hero.y = 95;
             // The good stuff
             for (var y = 0; y < (getbfgridxy()); y++) {
                 for (var x = 0; x < (getbfgridxy()); x++) {
@@ -177,8 +177,8 @@
                     })
                     .to({
                         x: (target.x * 100) + 50,
-                        y: (target.y * 100) + 50
-                    }, 1000)
+                        y: (target.y * 100) + 95
+                    },1000)
                     .call(setStandanimation);
 
                 function setStandanimation() {
@@ -199,6 +199,10 @@
                         socket.emit('gameID', pair[1])
                     }
                 }
+            });
+
+            socket.on('invalidGame', function () {
+                window.location.href = 'landing.html';
             });
 
             socket.on('gameTime', function (time) {

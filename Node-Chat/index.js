@@ -267,16 +267,23 @@ ingame.on('connection', function (socket) {
     });
 
     var getGameTimeDB = function (db, iGameID, callback) {
-      // Get the users collection
+      // Get the game collection
       var collection = db.collection('game');
-      // Find some user
-      collection.find(ObjectId(iGameID)).toArray(function (err, game) {
-        assert.equal(err, null);
-        if (game[0]) {
-          setGameTime(game[0].startTime);
+      // Find game      
+      if (ObjectId.isValid(iGameID)) {
+        collection.find(ObjectId(iGameID)).toArray(function (err, game) {
+          assert.equal(err, null);
+          if (game[0]) {
+            setGameTime(game[0].startTime);
+          } else {
+            socket.emit('invalidGame');
+          }
           callback();
-        }
-      });
+        });
+      }else{
+        socket.emit('invalidGame');
+      }
+
     };
 
   });
@@ -300,9 +307,11 @@ ingame.on('connection', function (socket) {
     var collection = db.collection('turn');
     // Update document where a is 2, set b equal to 1
     collection.update({
-      gameID: ObjectId(getGameID()),
-      endTime: getGameTime()
-    },turnEvent,{upsert:true},
+        gameID: ObjectId(getGameID()),
+        endTime: getGameTime()
+      }, turnEvent, {
+        upsert: true
+      },
       function (err, result) {
         assert.equal(err, null);
         assert.equal(1, result.result.n);
@@ -339,7 +348,7 @@ ingame.on('connection', function (socket) {
       endTime: getGameTime()
     }).toArray(function (err, turnDB) {
       assert.equal(err, null);
-      if (turnDB.length !=0) {
+      if (turnDB.length != 0) {
         var endTurnData = turnDB[0];
         console.log(JSON.stringify(endTurnData));
         ingame.in(getGameID()).emit('endTurn', endTurnData);

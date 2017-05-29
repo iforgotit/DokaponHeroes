@@ -1,10 +1,10 @@
-git fetch origin master
-git reset --hard FETCH_HEAD
+sudo git fetch origin master
+sudo git reset --hard FETCH_HEAD
 sudo npm install node-pre-gyp --unsafe-perm
 sudo npm install bcrypt --unsafe-perm
 
-forever -m5 server.js
+sudo forever start index.js -m5
 
-forever stop 0
+sudo forever list
 
-forever list
+sudo forever stop [id]
