@@ -33,7 +33,7 @@
                     <div class="panel-heading">
                         <h2>Choose your class</h2>
                     </div>
-                    <div class="panel-body">
+                    <div class="panel-body" id="divSltClass">
                         <form class="form-inline">
                             <div class="form-group center-block" style="width:49%">
                                 <a id="sltWarrior" class="list-group-item" style="height:300px" onclick="pickClass('sltWarrior','Warrior')">
@@ -124,15 +124,15 @@
                 chat.innerHTML = chat.innerHTML + chatHTML;
             });
 
-            socket.on('ggTimer', function (time) {
+            socket.on('ggTimer', function () {
                 socket.emit('killTimer');
                 document.getElementById("btnStartGame").classList.add('disabled');
                 document.getElementById("btnStartGame").disabled = true;
-                var chat = document.getElementById("lichat");
-                var chatHTML =
-                    '<a class="list-group-item"><h4 class="list-group-item-heading">Game Starting in...</h4><p class="list-group-item-text">' +
-                    time + '...</p></a>';
-                chat.innerHTML = chat.innerHTML + chatHTML;
+                var domSltClass = document.getElementById("divSltClass");
+                var aSltClass = domSltClass.getElementsByTagName("a");
+                for (i = 0; i < aSltClass.length; i++) {
+                    aSltClass[i].style.pointerEvents = "none";
+                }
                 document.getElementById("btnStartGame").value = "Game Starting";
             });
 
@@ -171,11 +171,41 @@
 
             socket.on('gameID', function (gameData) {
                 var chat = document.getElementById("lichat");
-                var chatHTML =
-                    '<a class="list-group-item"><h4 class="list-group-item-heading">GameID</h4><p class="list-group-item-text">' +
-                    JSON.stringify(gameData) + '...</p></a>';
-                chat.innerHTML = chat.innerHTML + chatHTML;
-                window.location.href = 'grid.html?game='+gameData._id;
+                var chatHTML;
+
+                if (getSeletedClass() !== undefined) {
+                    var pJSON = {
+                        "gID": gameData._id,
+                        "pID": sessionStorage.id,
+                        "dName": sessionStorage.dname,
+                        "pClass": getSeletedClass()
+                    }
+                    socket.emit('roleCall', pJSON);
+
+                    var t1 = 5;
+
+                    chatHTML =
+                        '<a class="list-group-item"><h4 class="list-group-item-heading">Game Starting</h4></a>';
+                    chat.innerHTML = chat.innerHTML + chatHTML;
+
+                    var t = setInterval(function () {
+                        chatHTML =
+                            '<a class="list-group-item"><p class="list-group-item-text">' +
+                            t1 + '...</p></a>';
+                        chat.innerHTML = chat.innerHTML + chatHTML;
+                        t1--;
+                        if (t1 == 0) {
+                            window.location.href = 'grid.html?game=' + gameData._id;
+                            return clearInterval(t);
+                        }
+                    }, 1000);
+                } else {
+                    chatHTML =
+                        '<a class="list-group-item"><h4 class="list-group-item-heading">You missed role call for this game!</h4></a>';
+                    chat.innerHTML = chat.innerHTML + chatHTML;
+                }
+
+
             });
 
             function escapeHtml(text) {
@@ -222,13 +252,16 @@
 
             function pickClass(btnClass, sltClass) {
                 setSelectedClass(sltClass);
-                document.getElementById("sltWarrior").classList.remove('list-group-item-success');
-                document.getElementById("sltRogue").classList.remove('list-group-item-success');
-                document.getElementById("sltMagii").classList.remove('list-group-item-success');
-                document.getElementById("sltObserver").classList.remove('list-group-item-success');
+                var domSltClass = document.getElementById("divSltClass");
+                var aSltClass = domSltClass.getElementsByTagName("a");
+                for (i = 0; i < aSltClass.length; i++) {
+                    aSltClass[i].classList.remove('list-group-item-success');
+                    aSltClass[i].style.pointerEvents = "";
+                }
                 socket.emit('newUser');
                 document.getElementById(btnClass).classList.add('list-group-item-success');
-                document.getElementById(btnClass).setAttribute('disabled', true);
+                document.getElementById(btnClass).style.pointerEvents = "none";
+
             }
 
             function startGame() {

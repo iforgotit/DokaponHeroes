@@ -174,12 +174,49 @@ lobbynsp.on('connection', function (socket) {
   });
 
   socket.on('killTimer', function () {
+    //This kills the timer that would reenable the start button
     clearInterval(t);
+  });
+
+  socket.on('roleCall', function (pJSON) {
+
+    MongoClient.connect(url, function (err, db) {
+      assert.equal(null, err);
+      addPlayer(db, pJSON, function () {
+        db.close();
+      });
+    });
+
+    var addPlayer = function (db, pJSON, callback) {
+      // Get the game collection
+      var collection = db.collection('game');
+      // Update game with players passing roleClass
+      collection.update({
+          _id: ObjectId(pJSON.gID)
+        }, {
+          $push: {
+            players: {
+              pID: pJSON.pID,
+              dName: pJSON.dName,
+              pClass: pJSON.pClass,
+              startX: (Math.floor((Math.random() * 4)) * 100),
+              startY: (Math.floor((Math.random() * 4)) * 100),
+              loaded: false
+            }
+
+          }
+        },
+        function (err, result) {
+          assert.equal(err, null);
+          callback();
+        });
+    };
   });
 
   socket.on('startGame', function () {
     clearInterval(t);
-    lobbynsp.emit('ggTimer', 'Fuck you Rick');
+
+    lobbynsp.emit('ggTimer');
 
     // Use connect method to connect to the server
     MongoClient.connect(url, function (err, db) {
@@ -228,8 +265,6 @@ var ingame = io.of('/ingame');
 
 ingame.on('connection', function (socket) {
 
-  socket.emit('getGame');
-
   var gameID;
   var gameTime = 0;
 
@@ -253,7 +288,7 @@ ingame.on('connection', function (socket) {
     clearInterval(t);
   });
 
-  socket.on('gameID', function (iGameID) {
+  socket.on('gameID', function (iGameID, pID) {
     setGameID(iGameID);
     socket.join(iGameID);
 
@@ -261,26 +296,44 @@ ingame.on('connection', function (socket) {
     MongoClient.connect(url, function (err, db) {
       assert.equal(null, err);
 
-      getGameTimeDB(db, iGameID, function () {
+      getGameTimeDB(db, iGameID, pID, function () {
         db.close();
       });
     });
 
-    var getGameTimeDB = function (db, iGameID, callback) {
+    var getGameTimeDB = function (db, iGameID, iPID, callback) {
       // Get the game collection
       var collection = db.collection('game');
       // Find game      
       if (ObjectId.isValid(iGameID)) {
-        collection.find(ObjectId(iGameID)).toArray(function (err, game) {
-          assert.equal(err, null);
-          if (game[0]) {
-            setGameTime(game[0].startTime);
-          } else {
-            socket.emit('invalidGame');
-          }
-          callback();
-        });
-      }else{
+        collection.findAndModify({
+            _id: ObjectId(iGameID),
+            "players.pID": iPID
+          }, {
+            startTime: 1
+          }, {
+            "$set": {
+              "players.$.loaded": true
+            }
+          },
+          function (err, result) {
+            assert.equal(err, null);
+            if (result) {
+              var game = result.value;
+              setGameTime(game.startTime);
+              var gridSize = game.players.length;
+              gridSize = Math.ceil(Math.sqrt(gridSize * 6));
+              var gameJSON = {
+                "size": gridSize,
+                "players": game.players
+              }
+              socket.emit('gameJSON', gameJSON)
+            } else {
+              socket.emit('invalidGame');
+            }
+            callback();
+          });
+      } else {
         socket.emit('invalidGame');
       }
 
@@ -303,12 +356,13 @@ ingame.on('connection', function (socket) {
   });
 
   var updateGameWithTurn = function (db, turnEvent, callback) {
-    // Get the documents collection
+    // Get the turn collection
     var collection = db.collection('turn');
-    // Update document where a is 2, set b equal to 1
+    // Update turn with most recent data
     collection.update({
         gameID: ObjectId(getGameID()),
-        endTime: getGameTime()
+        endTime: getGameTime(),
+        heroName: turnEvent.playerID
       }, turnEvent, {
         upsert: true
       },
@@ -349,9 +403,8 @@ ingame.on('connection', function (socket) {
     }).toArray(function (err, turnDB) {
       assert.equal(err, null);
       if (turnDB.length != 0) {
-        var endTurnData = turnDB[0];
-        console.log(JSON.stringify(endTurnData));
-        ingame.in(getGameID()).emit('endTurn', endTurnData);
+        var endTurnData = turnDB;
+        socket.emit('endTurn', endTurnData);
       }
       callback();
     });

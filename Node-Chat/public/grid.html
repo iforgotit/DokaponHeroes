@@ -20,7 +20,7 @@
     <div class="container-fluid">
         <div class="row">
             <div class="col-sm-10">
-                <canvas id="battlefield"></canvas>
+                <canvas id="battlefield" width="500"></canvas>
                 <p id="x"></p>
                 <p id="y"></p>
                 <p id="z"></p>
@@ -37,7 +37,30 @@
     <script>
         var queue;
         var stage = new createjs.Stage("battlefield");
-        var bfgridxy = 5;
+        var bfgridxy;
+        var socket = io('/ingame');
+        var players;
+
+        function setbfgridxy(size) {
+            bfgridxy = size;
+            var canvas = document.getElementById("battlefield");
+            canvas.height = size * 100;
+            canvas.width = size * 100;
+            loadAsset();
+            queue.load();
+        }
+
+        function getbfgridxy() {
+            return bfgridxy;
+        }
+
+        function setPlayers(playerObject) {
+            players = playerObject;
+        }
+
+        function getPlayers() {
+            return players;
+        }
 
         function stop() {
             if (preload != null) {
@@ -45,13 +68,17 @@
             }
         }
 
-        function getbfgridxy() {
-            return bfgridxy;
-        }
+        socket.on('gameJSON', function (gameJSON) {
+            setbfgridxy(gameJSON.size);
+            setPlayers(gameJSON.players);
+        })
+
+
 
         function landing() {
             window.location.href = 'landing.html';
         }
+
 
         function init() {
             if (sessionStorage.id == undefined) {
@@ -59,15 +86,24 @@
                 return false;
             }
 
-            document.getElementById("battlefield").width = getbfgridxy() * 100;
-            document.getElementById("battlefield").height = getbfgridxy() * 100;
+            var query = window.location.search.substring(1);
+            var vars = query.split("&");
+            for (var i = 0; i < vars.length; i++) {
+                var pair = vars[i].split("=");
+                if (pair[1]) {
+                    socket.emit('gameID', pair[1], sessionStorage.id)
+                }
+            }
 
-            queue = new createjs.LoadQueue(true);
+            distractor();
+
+            createjs.Ticker.setFPS(30);
+            createjs.Ticker.on("tick", handleTick);
+
+            queue = new createjs.LoadQueue(false);
 
             queue.on("complete", handleComplete);
             queue.on("error", handleError);
-
-            loadAsset();
         }
 
         function handleError(event) {
@@ -79,24 +115,76 @@
             }
         }
 
-        function loadAsset() {
-            var div = document.getElementById("z");
-            div.innerHTML = "<label>Loading...</label>";
+        function distractor() {
+            var ldRect = new createjs.Shape();
+            var ldCircle = new createjs.Shape();
 
+            var ldText = new createjs.Text("Loading...", "bold 70px Arial", "#ff7700");
+            ldText.x = 25;
+            ldText.y = 50;
+
+            ldRect.graphics.beginFill("#2b3e50").drawRect(0, 0, 500, 500);
+            ldRect.x = 50;
+            ldRect.y = 0;
+            createjs.Tween.get(ldRect, {
+                    loop: true
+                })
+                .to({
+                    x: 400
+                }, 3000, createjs.Ease.getPowInOut(4))
+                .to({
+                    x: 50
+                }, 3000, createjs.Ease.getPowInOut(4));
+
+            ldCircle.graphics.beginFill("Crimson").drawCircle(0, 0, 40);
+            ldCircle.x = 50;
+            ldCircle.y = 90;
+            createjs.Tween.get(ldCircle, {
+                    loop: true
+                })
+                .to({
+                    x: 400
+                }, 3000, createjs.Ease.getPowInOut(4))
+                .to({
+                    x: 50
+                }, 3000, createjs.Ease.getPowInOut(4));
+
+            stage.addChild(ldText);
+            stage.addChild(ldRect);
+            stage.addChild(ldCircle);
+            stage.update();
+        }
+
+        function loadAsset() {
             queue.loadManifest([{
                 id: "grass",
                 src: "../../assets/img/grass.png"
             }, {
                 id: "mightData",
+                src: "../../assets/sprites/might.json",
+                type: "spritesheet",
+                crossOrigin: true
+            }, {
+                id: "magicData",
+                src: "../../assets/sprites/magic.json",
+                type: "spritesheet",
+                crossOrigin: true
+            }, {
+                id: "cunningData",
                 src: "../../assets/sprites/cunning.json",
                 type: "spritesheet",
                 crossOrigin: true
             }]);
         }
 
+        function handleTick() {
+            stage.update();
+        }
+
         function handleComplete() {
-            var socket = io('/ingame');
             var turnSelected = undefined;
+
+            stage.removeAllChildren();
 
             document.getElementById("z").innerHTML = "";
 
@@ -104,11 +192,10 @@
             stage.enableMouseOver(10);
 
             var grass = queue.getResult("grass");
-            var spriteSheet = queue.getResult("mightData");
+            var mightSprite = queue.getResult("mightData");
+            var magicSprite = queue.getResult("magicData");
+            var cunningSprite = queue.getResult("cunningData");
 
-            var hero = new createjs.Sprite(spriteSheet, "stand");
-            hero.x = 50;
-            hero.y = 95;
             // The good stuff
             for (var y = 0; y < (getbfgridxy()); y++) {
                 for (var x = 0; x < (getbfgridxy()); x++) {
@@ -126,15 +213,35 @@
                         'x': x,
                         'y': y
                     };
-                    grid.graphics.beginStroke(grid.outStroke).beginBitmapFill(grass).setStrokeStyle(2).drawRect(0, 0,
+                    grid.graphics.beginStroke(grid.outStroke).beginBitmapFill(grass).setStrokeStyle(2).drawRect(
+                        0, 0,
                         98, 98).endStroke();
                     stage.addChild(grid);
                 }
             }
-            stage.addChild(hero);
+
+            for (var i = 0; i <= (getPlayers().length-1); i++) {
+                var heroData = getPlayers()[i];
+                var spriteSheet;
+                switch (heroData.pClass) {
+                    case "Magii":
+                        spriteSheet = magicSprite;
+                        break;
+                    case "Warrior":
+                        spriteSheet = mightSprite;
+                        break;
+                    case "Rogue":
+                        spriteSheet = cunningSprite;
+                        break;
+                }
+                var hero = new createjs.Sprite(spriteSheet, "stand");
+                hero.x = heroData.startX + 50;
+                hero.y = heroData.startY + 95;
+                hero.name = heroData.pID;
+                stage.addChild(hero);
+            }
+
             stage.update();
-            createjs.Ticker.setFPS(30);
-            createjs.Ticker.on("tick", handleTick);
 
             function handleMouseEvent(event) {
                 var target = event.target;
@@ -145,7 +252,7 @@
                 } else if (event.type == "click" && turnSelected == undefined) {
                     target.graphics.beginStroke(target.clickStroke).setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
                     turnSelected = target;
-                    document.getElementById("z").innerHTML = "type: " + event.type + " - " + target.name.x +
+                    //document.getElementById("z").innerHTML = "type: " + event.type + " - " + target.name.x +
                         " : " + target.name.y;
                     var turnJSON = {
                         "playerID": sessionStorage.id,
@@ -157,48 +264,33 @@
             }
 
             socket.on('endTurn', function (endTurnData) {
-                var target = endTurnData.target;
-                if (turnSelected != undefined) {
-                    turnSelected.graphics.beginStroke(turnSelected.outStroke).setStrokeStyle(2).drawRect(0, 0,
-                        98, 98).endStroke();
-                    turnSelected = undefined;
-                }
-                document.getElementById("x").innerHTML = endTurnData.playerID;
-                if (hero.x > endTurnData.stageX) {
-                    hero.scaleX = -1;
-                    hero.gotoAndPlay("walk");
-                } else {
-                    hero.gotoAndPlay("walk");
-                    hero.scaleX = 1;
-                }
-
-                createjs.Tween.get(hero, {
-                        loop: false
-                    })
-                    .to({
-                        x: (target.x * 100) + 50,
-                        y: (target.y * 100) + 95
-                    },1000)
-                    .call(setStandanimation);
-
-                function setStandanimation() {
-                    hero.gotoAndPlay("stand");
-                }
-            });
-
-            function handleTick() {
-                stage.update();
-            }
-
-            socket.on('getGame', function () {
-                var query = window.location.search.substring(1);
-                var vars = query.split("&");
-                for (var i = 0; i < vars.length; i++) {
-                    var pair = vars[i].split("=");
-                    if (pair[1]) {
-                        socket.emit('gameID', pair[1])
+                for (var i = 0; i <= (endTurnData.length - 1); i++) {
+                    var target = endTurnData[i].target;
+                    if (turnSelected != undefined) {
+                        turnSelected.graphics.beginStroke(turnSelected.outStroke).setStrokeStyle(2).drawRect(0,
+                            0,
+                            98, 98).endStroke();
+                        turnSelected = undefined;
                     }
+                    //document.getElementById("x").innerHTML += " - " + endTurnData[i].playerID;
+                    var eachHero = stage.getChildByName(endTurnData[i].playerID);
+                    if (eachHero.x > endTurnData[i].stageX) {
+                        eachHero.scaleX = -1;
+                        eachHero.gotoAndPlay("walk");
+                    } else {
+                        eachHero.gotoAndPlay("walk");
+                        eachHero.scaleX = 1;
+                    }
+
+                    createjs.Tween.get(eachHero, {
+                            loop: false
+                        })
+                        .to({
+                            x: (target.x * 100) + 50,
+                            y: (target.y * 100) + 95
+                        }, 1000).call(function (){eachHero.gotoAndPlay("stand")});
                 }
+
             });
 
             socket.on('invalidGame', function () {

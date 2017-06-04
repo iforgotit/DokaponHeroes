@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+
+    <title>Dokapon Heroes</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="../../assets/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.createjs.com/createjs-2015.11.26.min.js"></script>
+    <script>
+        function init() {
+            var stage = new createjs.Stage("demoCanvas");
+            var ldRect = new createjs.Shape();
+            var ldCircle = new createjs.Shape();
+
+            var ldText = new createjs.Text("Loading...", "bold 70px Arial", "#ff7700");
+            ldText.x = 25;
+            ldText.y = 50;
+
+            var ldPercent = new createjs.Text("25%", "bold 30px Arial", "#2b3e50");
+            ldPercent.x = 25;
+            ldPercent.y = 75;
+            createjs.Tween.get(ldPercent, {
+                    loop: true
+                })
+                .to({
+                    x: 375
+                }, 3000, createjs.Ease.getPowInOut(4))
+                .to({
+                    x: 25
+                }, 3000, createjs.Ease.getPowInOut(4));
+
+            ldRect.graphics.beginFill("#2b3e50").drawRect(0, 0, 500, 500);
+            ldRect.x = 50;
+            ldRect.y = 0;
+            createjs.Tween.get(ldRect, {
+                    loop: true
+                })
+                .to({
+                    x: 400
+                }, 3000, createjs.Ease.getPowInOut(4))
+                .to({
+                    x: 50
+                }, 3000, createjs.Ease.getPowInOut(4));
+
+            ldCircle.graphics.beginFill("Crimson").drawCircle(0, 0, 40);
+            ldCircle.x = 50;
+            ldCircle.y = 90;
+            createjs.Tween.get(ldCircle, {
+                    loop: true
+                })
+                .to({
+                    x: 400
+                }, 3000, createjs.Ease.getPowInOut(4))
+                .to({
+                    x: 50
+                }, 3000, createjs.Ease.getPowInOut(4));
+
+            stage.addChild(ldText);
+            stage.addChild(ldRect);
+            stage.addChild(ldCircle);
+            stage.addChild(ldPercent);
+
+            createjs.Ticker.setFPS(60);
+            createjs.Ticker.addEventListener("tick", stage);
+
+        }
+    </script>
+</head>
+
+<body onload="init();">
+    <canvas id="demoCanvas" width="500" height="500"></canvas>
+</body>
+
+</html>
