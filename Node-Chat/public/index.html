@@ -16,7 +16,7 @@
 
 <body onload="checkAccount()">
   <div class="container">
-    <form class="form-signin col-md-6" onsubmit="login()">
+    <form class="form-signin col-md-6" onsubmit="login(event)">
       <table style="width:100%">
         <tr>
           <td>
@@ -35,7 +35,7 @@
         <label for="txtPassword" class="sr-only">Display Name</label>
         <input type="password" id="txtPassword" class="form-control" placeholder="Password" required><br>
         <!--login button-->
-        <input id="btnLogin" type="submit" class="btn btn-lg btn-primary col-md-3" onclick="login()" value="LET'S GO">
+        <input id="btnLogin" type="submit" class="btn btn-lg btn-primary col-md-3" onclick="login(event)" value="LET'S GO">
       </div>
     </form>
   </div><br>
@@ -66,8 +66,8 @@
   </script>
   <script>
     //executed on clicking the login button
-    function login() {
-      event.preventDefault();
+    function login(e) {
+      e.preventDefault();
 
       document.getElementById("btnLogin").disabled = true;
       document.getElementById("z").hidden = true;
@@ -100,7 +100,8 @@
         //sends the object to the server
         socket.emit('authenticate', JSONuser);
         document.getElementById("btnLogin").disabled = false;
-      }
+        return false;
+      };
 
     }
 

@@ -97,12 +97,12 @@
                         <div class="list-group" id="lichat">
                         </div>
                     </div>
-                    <form class="form-inline" onsubmit="send()">
+                    <form class="form-inline" onsubmit="send(event)">
                         <div id="fgMsg" class="form-group col-sm-10">
                             <input type="text" class="form-control" style="width : 100%" id="txtMsg" placeholder="Message" autocomplete="off">
                             <p id="limit"></p>
                         </div>
-                        <input id="btnSend" type="button" class="btn btn-info" onclick="send()" value="Send">
+                        <input id="btnSend" type="button" class="btn btn-info" onclick="send(event)" value="Send">
                     </form>
                     <p id="z"></p>
                     <br>
@@ -218,8 +218,8 @@
             }
         </script>
         <script>
-            function send() {
-                event.preventDefault();
+            function send(e) {
+                e.preventDefault();
                 if (document.getElementById("txtMsg").value.length == 0) {
                     document.getElementById("limit").innerHTML = "";
                     document.getElementById("fgMsg").classList.add('has-error');

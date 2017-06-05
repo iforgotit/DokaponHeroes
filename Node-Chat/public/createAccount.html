@@ -16,7 +16,7 @@
 
 <body>
   <div class="container">
-    <form class="form-signin col-md-6" onsubmit="createAccount()">
+    <form class="form-signin col-md-6" onsubmit="createAccount(event)">
       <h2 class="form-signin-heading">Account Creation</h2><br>
       <!--Email field-->
       <label for="txtEmail" class="sr-only">Email address</label>
@@ -57,9 +57,9 @@
   </script>
   <script>
     //executed on clicking the login button
-    function createAccount() {
+    function createAccount(e) {
       //avoid refreshing page
-      event.preventDefault();
+      e.preventDefault();
 
       //avoid double submission
       document.getElementById("btnCreate").disabled = true;
