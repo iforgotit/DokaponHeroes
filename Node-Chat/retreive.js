@@ -19,7 +19,7 @@ var findDocuments = function(db, callback) {
   // Get the documents collection
   var collection = db.collection('users');
   // Find some documents
-  collection.find({}).toArray(function(err, docs) {
+  collection.find().toArray(function(err, docs) {
     assert.equal(err, null);
     console.log("Found the following records");
     console.log(JSON.stringify(docs));
