@@ -264,7 +264,7 @@
             }
 
             socket.on('endTurn', function (endTurnData) {
-                for (var i = 0; i <= (endTurnData.length - 1); i++) {
+                for (let i = 0; i <= (endTurnData.length - 1); i++) {
                     var target = endTurnData[i].target;
                     if (turnSelected != undefined) {
                         turnSelected.graphics.beginStroke(turnSelected.outStroke).setStrokeStyle(2).drawRect(0,
@@ -273,7 +273,7 @@
                         turnSelected = undefined;
                     }
                     //document.getElementById("x").innerHTML += " - " + endTurnData[i].playerID;
-                    var eachHero = stage.getChildByName(endTurnData[i].playerID);
+                    let eachHero = stage.getChildByName(endTurnData[i].playerID);
                     if (eachHero.x > endTurnData[i].stageX) {
                         eachHero.scaleX = -1;
                         eachHero.gotoAndPlay("walk");
