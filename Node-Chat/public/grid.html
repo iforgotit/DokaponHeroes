@@ -44,8 +44,14 @@
         function setbfgridxy(size) {
             bfgridxy = size;
             var canvas = document.getElementById("battlefield");
-            canvas.height = size * 100;
-            canvas.width = size * 100;
+            if (size > 5) {
+                canvas.height = size * 100;
+                canvas.width = size * 100;
+            } else {
+                canvas.height = 500;
+                canvas.width = 500;
+            }
+
             loadAsset();
             queue.load();
         }
@@ -174,6 +180,11 @@
                 src: "../../assets/sprites/cunning.json",
                 type: "spritesheet",
                 crossOrigin: true
+            }, {
+                id: "brawlData",
+                src: "../../assets/sprites/brawl.json",
+                type: "spritesheet",
+                crossOrigin: true
             }]);
         }
 
@@ -183,6 +194,7 @@
 
         function handleComplete() {
             var turnSelected = undefined;
+            var playerLocation = new Object();
 
             stage.removeAllChildren();
 
@@ -195,6 +207,7 @@
             var mightSprite = queue.getResult("mightData");
             var magicSprite = queue.getResult("magicData");
             var cunningSprite = queue.getResult("cunningData");
+            var brawlSprite = queue.getResult("brawlData");
 
             // The good stuff
             for (var y = 0; y < (getbfgridxy()); y++) {
@@ -220,25 +233,36 @@
                 }
             }
 
-            for (var i = 0; i <= (getPlayers().length-1); i++) {
+            for (var i = 0; i <= (getPlayers().length - 1); i++) {
                 var heroData = getPlayers()[i];
-                var spriteSheet;
-                switch (heroData.pClass) {
-                    case "Magii":
-                        spriteSheet = magicSprite;
-                        break;
-                    case "Warrior":
-                        spriteSheet = mightSprite;
-                        break;
-                    case "Rogue":
-                        spriteSheet = cunningSprite;
-                        break;
+                if (heroData.pClass != "Observer") {
+                    var spriteSheet;
+                    switch (heroData.pClass) {
+                        case "Magii":
+                            spriteSheet = magicSprite;
+                            break;
+                        case "Warrior":
+                            spriteSheet = mightSprite;
+                            break;
+                        case "Rogue":
+                            spriteSheet = cunningSprite;
+                            break;
+                    }
+                    var hero = new createjs.Sprite(spriteSheet, "stand");
+                    hero.x = heroData.startX + 50;
+                    hero.y = heroData.startY + 95;
+                    hero.type = "hero";
+                    hero.name = heroData.pID;
+
+                    var nameplate = new createjs.Text(heroData.dName, "12px Arial", "#ff7700");
+                    nameplate.x = heroData.startX + 25;
+                    nameplate.y = heroData.startY + 100;
+                    nameplate.name = "n" + heroData.pID;
+
+                    stage.addChild(nameplate);
+                    stage.addChild(hero);
                 }
-                var hero = new createjs.Sprite(spriteSheet, "stand");
-                hero.x = heroData.startX + 50;
-                hero.y = heroData.startY + 95;
-                hero.name = heroData.pID;
-                stage.addChild(hero);
+
             }
 
             stage.update();
@@ -253,7 +277,7 @@
                     target.graphics.beginStroke(target.clickStroke).setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
                     turnSelected = target;
                     //document.getElementById("z").innerHTML = "type: " + event.type + " - " + target.name.x +
-                        " : " + target.name.y;
+                    " : " + target.name.y;
                     var turnJSON = {
                         "playerID": sessionStorage.id,
                         "stageX": event.stageX,
@@ -264,8 +288,9 @@
             }
 
             socket.on('endTurn', function (endTurnData) {
+
                 for (let i = 0; i <= (endTurnData.length - 1); i++) {
-                    var target = endTurnData[i].target;
+                    let target = endTurnData[i].target;
                     if (turnSelected != undefined) {
                         turnSelected.graphics.beginStroke(turnSelected.outStroke).setStrokeStyle(2).drawRect(0,
                             0,
@@ -274,6 +299,7 @@
                     }
                     //document.getElementById("x").innerHTML += " - " + endTurnData[i].playerID;
                     let eachHero = stage.getChildByName(endTurnData[i].playerID);
+                    let eachNameplate = stage.getChildByName("n" + endTurnData[i].playerID);
                     if (eachHero.x > endTurnData[i].stageX) {
                         eachHero.scaleX = -1;
                         eachHero.gotoAndPlay("walk");
@@ -288,7 +314,48 @@
                         .to({
                             x: (target.x * 100) + 50,
                             y: (target.y * 100) + 95
-                        }, 1000).call(function (){eachHero.gotoAndPlay("stand")});
+                        }, 1000).call(function () {
+                            eachHero.gotoAndPlay("stand");
+                        });
+
+                    createjs.Tween.get(eachNameplate, {
+                        loop: false
+                    }).to({
+                        x: (target.x * 100) + 25,
+                        y: (target.y * 100) + 100
+                    }, 1000)
+
+                    let pID = endTurnData[i].playerID;
+
+                    playerLocation[pID] = {
+                        x: target.x,
+                        y: target.y
+                    }
+
+
+                }
+
+                for (let n = 0; n <= (Object.keys(playerLocation).length - 1); n++) {
+                    let pOX = Object.keys(playerLocation)[n];
+                    let pX = playerLocation[pOX];
+                    for (let i = 0; i <= (Object.keys(playerLocation).length - 1); i++) {
+                        if (i != n) {
+                            let pOY = Object.keys(playerLocation)[i];
+                            let pY = playerLocation[pOY];
+                            if (pX.x == pY.x && pX.y == pY.y) {
+                                document.getElementById("x").innerHTML += "fight - " + pOX + "<br>";
+                                let eachHero = stage.getChildByName(endTurnData[i].playerID);
+                                let eachNameplate = stage.getChildByName("n" + endTurnData[i].playerID);
+                                eachHero.alpha = 0;
+                                eachNameplate.alpha = 0;
+                                let brawl = new createjs.Sprite(brawlSprite, "fight");
+                                brawl.x = (pX.x* 100)- 10;
+                                brawl.y = (pX.y* 100) - 6;
+                                brawl.name = "b" + eachHero.pID;
+                                stage.addChild(brawl);
+                            }
+                        }
+                    }
                 }
 
             });

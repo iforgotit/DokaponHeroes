@@ -1,0 +1,1 @@
+fight_01.png.png 31 30, fight_02.png.png 140 6, fight_03.png.png 249 6, fight_04.png.png 374 28, fight_05.png.png 388 31, fight_06.png.png 438 28, fight_07.png.png 499 72, fight_08.png.png 516 49, fight_09.png.png 558 57, fight_10.png.png 525 27, fight_11.png.png 383 76.

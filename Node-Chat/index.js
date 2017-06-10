@@ -36,7 +36,7 @@ app.use(express.static('public'));
 //opens root socket connection
 io.on('connection', function (socket) {
 
-  console.log('a user connected to root');
+  //console.log('a user connected to root');
 
   socket.on('createUser', function (user) {
 

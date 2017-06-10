@@ -23,7 +23,7 @@
       <input type="email" id="txtEmail" class="form-control" placeholder="Email Address" autofocus required><br>
       <!--Email field-->
       <label for="txtDname" class="sr-only">Display Name</label>
-      <input type="text" id="txtDname" class="form-control" placeholder="Display Name" required><br>
+      <input type="text" id="txtDname" class="form-control" placeholder="Display Name" pattern="[a-zA-Z0-9]{3,25}" title="Display Name must be between 3 and 25 characters" required><br>
       <!--Password field-->
       <label for="txtPassword" class="sr-only" required>Password</label>
       <input type="password" id="txtPassword" class="form-control" placeholder="Password" required><br>
@@ -82,7 +82,7 @@
         }
         if (!dname.validity.valid) {
           document.getElementById("z").innerHTML = document.getElementById("z").innerHTML +
-            "Display Name cannot be empty <br>";
+            "Display Name must be between 3 and 25 characters <br>";
           dname.classList.add('has-error');
         }
         if (!password.validity.valid) {
