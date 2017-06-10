@@ -45,11 +45,11 @@
             bfgridxy = size;
             var canvas = document.getElementById("battlefield");
             if (size > 5) {
-                canvas.height = size * 100;
-                canvas.width = size * 100;
+                canvas.height = (size * 100)+20;
+                canvas.width = (size * 100)+20;
             } else {
-                canvas.height = 500;
-                canvas.width = 500;
+                canvas.height = 520;
+                canvas.width = 520;
             }
 
             loadAsset();
@@ -249,14 +249,19 @@
                             break;
                     }
                     var hero = new createjs.Sprite(spriteSheet, "stand");
-                    hero.x = heroData.startX + 50;
-                    hero.y = heroData.startY + 95;
+                    hero.x = (heroData.startX * 100) + 50;
+                    hero.y = (heroData.startY * 100) + 95;
                     hero.type = "hero";
                     hero.name = heroData.pID;
 
+                    playerLocation[heroData.pID] = {
+                        x: heroData.startX,
+                        y: heroData.startY
+                    }
+
                     var nameplate = new createjs.Text(heroData.dName, "12px Arial", "#ff7700");
-                    nameplate.x = heroData.startX + 25;
-                    nameplate.y = heroData.startY + 100;
+                    nameplate.x = (heroData.startX * 100) + 25;
+                    nameplate.y = (heroData.startY * 100) + 100;
                     nameplate.name = "n" + heroData.pID;
 
                     stage.addChild(nameplate);
@@ -276,8 +281,6 @@
                 } else if (event.type == "click" && turnSelected == undefined) {
                     target.graphics.beginStroke(target.clickStroke).setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
                     turnSelected = target;
-                    //document.getElementById("z").innerHTML = "type: " + event.type + " - " + target.name.x +
-                    " : " + target.name.y;
                     var turnJSON = {
                         "playerID": sessionStorage.id,
                         "stageX": event.stageX,
@@ -297,7 +300,6 @@
                             98, 98).endStroke();
                         turnSelected = undefined;
                     }
-                    //document.getElementById("x").innerHTML += " - " + endTurnData[i].playerID;
                     let eachHero = stage.getChildByName(endTurnData[i].playerID);
                     let eachNameplate = stage.getChildByName("n" + endTurnData[i].playerID);
                     if (eachHero.x > endTurnData[i].stageX) {
@@ -331,29 +333,42 @@
                         x: target.x,
                         y: target.y
                     }
-
-
                 }
+
+                document.getElementById("y").innerHTML = "";
 
                 for (let n = 0; n <= (Object.keys(playerLocation).length - 1); n++) {
                     let pOX = Object.keys(playerLocation)[n];
                     let pX = playerLocation[pOX];
+                    let eachHero = stage.getChildByName(pOX);
+                    let eachNameplate = stage.getChildByName("n" + pOX);
                     for (let i = 0; i <= (Object.keys(playerLocation).length - 1); i++) {
+
                         if (i != n) {
                             let pOY = Object.keys(playerLocation)[i];
                             let pY = playerLocation[pOY];
                             if (pX.x == pY.x && pX.y == pY.y) {
-                                document.getElementById("x").innerHTML += "fight - " + pOX + "<br>";
-                                let eachHero = stage.getChildByName(endTurnData[i].playerID);
-                                let eachNameplate = stage.getChildByName("n" + endTurnData[i].playerID);
-                                eachHero.alpha = 0;
-                                eachNameplate.alpha = 0;
-                                let brawl = new createjs.Sprite(brawlSprite, "fight");
-                                brawl.x = (pX.x* 100)- 10;
-                                brawl.y = (pX.y* 100) - 6;
-                                brawl.name = "b" + eachHero.pID;
-                                stage.addChild(brawl);
-                            }
+                                playerLocation[pOX].inCombat = 1;
+                            };
+                        };
+                    }
+                    
+                    if (playerLocation[pOX].inCombat == 1) {
+                        if (sessionStorage.id == pOX) {
+                            document.getElementById("z").innerHTML += "you are in a fight!";
+                        }
+                        eachHero.alpha = 0;
+                        eachNameplate.alpha = 0;
+                        let brawl = new createjs.Sprite(brawlSprite, "fight");
+                        brawl.x = (pX.x * 100) - 10;
+                        brawl.y = (pX.y * 100) - 6;
+                        brawl.name = "b" + pOX;
+                        stage.addChild(brawl);
+                    } else {
+                        eachHero.alpha = 1;
+                        eachNameplate.alpha = 1;
+                        if (stage.getChildByName("b" + pOX)) {
+                            stage.removeChild(stage.getChildByName("b" + pOX));
                         }
                     }
                 }

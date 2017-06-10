@@ -199,8 +199,8 @@ lobbynsp.on('connection', function (socket) {
               pID: pJSON.pID,
               dName: pJSON.dName,
               pClass: pJSON.pClass,
-              startX: (Math.floor((Math.random() * 4)) * 100),
-              startY: (Math.floor((Math.random() * 4)) * 100),
+              startX: (Math.floor((Math.random() * 4))),
+              startY: (Math.floor((Math.random() * 4))),
               loaded: false
             }
 
