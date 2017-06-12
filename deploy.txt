@@ -8,3 +8,6 @@ sudo forever start index.js -m5
 sudo forever list
 
 sudo forever stop [id]
+
+
+sudo git pull origin master
