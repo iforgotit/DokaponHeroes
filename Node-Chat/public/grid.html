@@ -14,24 +14,53 @@
     <script src="https://code.createjs.com/easeljs-0.8.2.min.js"></script>
     <script src="https://code.createjs.com/tweenjs-0.6.2.min.js"></script>
     <script src="https://code.createjs.com/preloadjs-0.6.2.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 </head>
+<!-- init checked if they are logged in, starts the loading animation, and starts the asset loading -->
 
 <body onload="init();">
     <div class="container-fluid">
         <div class="row">
             <div class="col-sm-10">
+                <!-- battlefield is the stage -->
                 <canvas id="battlefield" width="500"></canvas>
+                <!-- x is a debugging panel -->
                 <p id="x"></p>
+                <!-- y is currently displaying the players eventually would like to move this to a left div panel -->
                 <table id="y" style="border-spacing:10px;">
                     <tr></tr>
                 </table>
+                <!-- z is a debugging display -->
                 <p id="z"></p>
             </div>
+            <!-- displays turn, turn time, and exit button -->
             <div class="col-sm-2">
                 Turn Timer:
                 <p id="time"></p>
+                Turn:
+                <p id="turn"></p>
                 <input id="btnReturn" type="button" class="btn btn-lg btn-primary" style="width:100%; white-space:normal;" onclick="landing()"
                     value="Return to Main Lobby">
+            </div>
+        </div>
+        <!-- combat menu modal will display the user and then anyone he can attack -->
+        <div id="mdlCombat" class="modal modal-fade modal-lg">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Combat Menu</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-4" id="mdlDefend" align="center"></div>
+                            <div style="overflow-x: auto;white-space: nowrap;" class="container-fluid col-md-8">
+                                <div class="row" id="mdlAttack">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -42,7 +71,11 @@
         var bfgridxy;
         var socket = io('/ingame');
         var players;
+        var turnSelected = undefined;
+        var playerLocation = new Object();
+        var turnCount;
 
+        // set the size of the stage, this should get nested in a div in case the stage gets massive
         function setbfgridxy(size) {
             bfgridxy = size;
             var canvas = document.getElementById("battlefield");
@@ -53,53 +86,34 @@
                 canvas.height = 520;
                 canvas.width = 520;
             }
-
-            loadAsset();
-            queue.load();
         }
 
+        // returns the max x or y, this needs to be multipled by 100 to get grid coords
         function getbfgridxy() {
             return bfgridxy;
         }
-
+        //creates a object to store player information, not currently updated fequently 
         function setPlayers(playerObject) {
             players = playerObject;
         }
-
+        //returns player object
         function getPlayers() {
             return players;
         }
-
-        function stop() {
-            if (preload != null) {
-                preload.close();
-            }
-        }
-
+        //once the player has indicated they have loaded all of the assets, server will send the player information
         socket.on('gameJSON', function (gameJSON) {
             setbfgridxy(gameJSON.size);
             setPlayers(gameJSON.players);
         })
-
-
-
+        //return to landing page
         function landing() {
             window.location.href = 'landing.html';
         }
-
+        //run on body load, starts the loading of assets
         function init() {
             if (sessionStorage.id == undefined) {
                 window.location.href = 'index.html';
                 return false;
-            }
-
-            var query = window.location.search.substring(1);
-            var vars = query.split("&");
-            for (var i = 0; i < vars.length; i++) {
-                var pair = vars[i].split("=");
-                if (pair[1]) {
-                    socket.emit('gameID', pair[1], sessionStorage.id)
-                }
             }
 
             distractor();
@@ -107,7 +121,9 @@
             createjs.Ticker.setFPS(30);
             createjs.Ticker.on("tick", handleTick);
 
-            queue = new createjs.LoadQueue(false);
+            queue = new createjs.LoadQueue(true);
+
+            loadAsset();
 
             queue.on("complete", handleComplete);
             queue.on("error", handleError);
@@ -194,12 +210,19 @@
         }
 
         function handleComplete() {
-            var turnSelected = undefined;
-            var playerLocation = new Object();
+            var query = window.location.search.substring(1);
+            var vars = query.split("&");
+            for (var i = 0; i < vars.length; i++) {
+                var pair = vars[i].split("=");
+                if (pair[1]) {
+                    socket.emit('gameID', pair[1], sessionStorage.id)
+                }
+            }
+        }
+
+        socket.on("allLoaded", function () {
 
             stage.removeAllChildren();
-
-            document.getElementById("z").innerHTML = "";
 
             createjs.Touch.enable(stage);
             stage.enableMouseOver(10);
@@ -208,9 +231,14 @@
             var mightSprite = queue.getResult("mightData");
             var magicSprite = queue.getResult("magicData");
             var cunningSprite = queue.getResult("cunningData");
-            var brawlSprite = queue.getResult("brawlData");
 
-            // The good stuff
+            var bgContainer = new createjs.Container();
+            var bgFill  = new createjs.Shape();
+            bgFill.graphics.beginBitmapFill(grass).drawRect(0, 0, getbfgridxy() * 100, getbfgridxy() * 100);
+            bgContainer.addChild(bgFill);
+            stage.addChild(bgContainer);
+
+            // generates battlefield grid
             for (var y = 0; y < (getbfgridxy()); y++) {
                 for (var x = 0; x < (getbfgridxy()); x++) {
                     var grid = new createjs.Shape();
@@ -220,14 +248,17 @@
                     grid.outStroke = "#3281FF";
                     grid.disableStroke = "#808080";
                     grid.clickStroke = "#000000";
-                    grid.type = "tile";
+                    grid.type = "grid";
                     grid.name = {
                         'x': x,
                         'y': y
                     };
-                    grid.graphics.beginStroke(grid.disableStroke).beginBitmapFill(grass).setStrokeStyle(2).drawRect(
+                    grid.graphics.beginStroke(grid.disableStroke).setStrokeStyle(2).drawRect(
                         0, 0,
                         98, 98).endStroke();
+                    var hit = new createjs.Shape();
+                    hit.graphics.beginFill("#000").drawRect(0, 0, 100, 100);
+                    grid.hitArea = hit;
                     stage.addChild(grid);
                 }
             }
@@ -248,19 +279,19 @@
                             break;
                     }
                     var hero = new createjs.Sprite(spriteSheet, "stand");
-                    hero.x = (heroData.startX * 100) + 50;
-                    hero.y = (heroData.startY * 100) + 95;
+                    hero.x = (heroData.x * 100) + 50;
+                    hero.y = (heroData.y * 100) + 95;
                     hero.type = "hero";
                     hero.name = heroData.pID;
 
                     playerLocation[heroData.pID] = {
-                        x: heroData.startX,
-                        y: heroData.startY
+                        x: heroData.x,
+                        y: heroData.y
                     }
 
                     var nameplate = new createjs.Text(heroData.dName, "12px Arial", "#ff7700");
-                    nameplate.x = (heroData.startX * 100) + 25;
-                    nameplate.y = (heroData.startY * 100) + 100;
+                    nameplate.x = (heroData.x * 100) + 25;
+                    nameplate.y = (heroData.y * 100) + 100;
                     nameplate.name = "n" + heroData.pID;
 
                     stage.addChild(nameplate);
@@ -273,335 +304,302 @@
 
             var initJSON = {
                 "playerID": sessionStorage.id,
+                "turn": 0,
                 "actionType": "init"
             }
             socket.emit('turnData', initJSON);
+        });
 
-            function handleGridEvent(event) {
-                var target = event.target;
-                if (event.type == "mouseover" && turnSelected == undefined) {
-                    target.graphics.beginStroke(target.overStroke).setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
-                } else if (event.type == "mouseout" && turnSelected == undefined) {
-                    target.graphics.beginStroke(target.outStroke).setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
-                } else if (event.type == "click" && turnSelected == undefined) {
-                    target.graphics.beginStroke(target.clickStroke).setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
-                    turnSelected = target;
-                    var turnJSON = {
-                        "playerID": sessionStorage.id,
-                        "stageX": event.stageX,
-                        "actionType": "move",
-                        "target": target.name
-                    }
-                    socket.emit('turnData', turnJSON);
+        function handleGridEvent(event) {
+            var target = event.target;
+            if (event.type == "mouseover" && turnSelected == undefined) {
+                target.graphics.beginStroke(target.overStroke).setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
+            } else if (event.type == "mouseout" && turnSelected == undefined) {
+                target.graphics.beginStroke(target.outStroke).setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
+            } else if (event.type == "click" && turnSelected == undefined) {
+                target.graphics.beginStroke(target.clickStroke).setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
+                turnSelected = target;
+                var turnJSON = {
+                    "playerID": sessionStorage.id,
+                    "stageX": event.stageX,
+                    "actionType": "move",
+                    "turn": turnCount,
+                    "target": target.name
                 }
+                socket.emit('turnData', turnJSON);
+            }
+        }
+
+        function handleDefendEvent(event) {
+            var target = event.target;
+            if (event.type == "click" && turnSelected == undefined) {
+                target.graphics.beginStroke("#000000").setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
+                var turnJSON = {
+                    "playerID": sessionStorage.id,
+                    "actionType": "defend",
+                    "turn": turnCount,
+                    "target": target.name
+                }
+                document.getElementById("z").innerHTML = JSON.stringify(turnJSON);
+                //socket.emit('turnData', turnJSON);
+            }
+        }
+
+        function handleAttackEvent(event) {
+            var target = event.target;
+            if (event.type == "click" && turnSelected == undefined) {
+                target.graphics.beginStroke("#000000").setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
+                var turnJSON = {
+                    "playerID": sessionStorage.id,
+                    "actionType": "attack",
+                    "turn": turnCount,
+                    "target": target.name
+                }
+                //socket.emit('turnData', turnJSON);
+            }
+        }
+
+        function movePlayer(PlayerTurnData) {
+            let target = PlayerTurnData.target;
+            if (turnSelected != undefined) {
+                turnSelected.graphics.beginStroke(turnSelected.outStroke).setStrokeStyle(2).drawRect(
+                    0,
+                    0,
+                    98, 98).endStroke();
+                turnSelected = undefined;
+            }
+            let eachHero = stage.getChildByName(PlayerTurnData.playerID);
+            let eachNameplate = stage.getChildByName("n" + PlayerTurnData.playerID);
+            if (eachHero.x > PlayerTurnData.stageX) {
+                eachHero.scaleX = -1;
+                eachHero.gotoAndPlay("walk");
+            } else {
+                eachHero.gotoAndPlay("walk");
+                eachHero.scaleX = 1;
             }
 
-            function handleDefendEvent(event) {
-                var target = event.target;
-                if (event.type == "click" && turnSelected == undefined) {
-                    target.graphics.beginStroke("#000000").setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
-                    var turnJSON = {
-                        "playerID": sessionStorage.id,
-                        "actionType": "defend",
-                        "target": target.name
-                    }
-                    document.getElementById("z").innerHTML = JSON.stringify(turnJSON);
-                    //socket.emit('turnData', turnJSON);
-                }
-            }
-
-            function handleAttackEvent(event) {
-                var target = event.target;
-                if (event.type == "click" && turnSelected == undefined) {
-                    target.graphics.beginStroke("#000000").setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
-                    var turnJSON = {
-                        "playerID": sessionStorage.id,
-                        "actionType": "attack",
-                        "target": target.name
-                    }
-                    document.getElementById("x").innerHTML = JSON.stringify(turnJSON);
-                    //socket.emit('turnData', turnJSON);
-                }
-            }
-
-            function movePlayer(PlayerTurnData) {
-                let target = PlayerTurnData.target;
-                if (turnSelected != undefined) {
-                    turnSelected.graphics.beginStroke(turnSelected.outStroke).setStrokeStyle(2).drawRect(
-                        0,
-                        0,
-                        98, 98).endStroke();
-                    turnSelected = undefined;
-                }
-                let eachHero = stage.getChildByName(PlayerTurnData.playerID);
-                let eachNameplate = stage.getChildByName("n" + PlayerTurnData.playerID);
-                if (eachHero.x > PlayerTurnData.stageX) {
-                    eachHero.scaleX = -1;
-                    eachHero.gotoAndPlay("walk");
-                } else {
-                    eachHero.gotoAndPlay("walk");
-                    eachHero.scaleX = 1;
-                }
-
-                createjs.Tween.get(eachHero, {
-                        loop: false
-                    })
-                    .to({
-                        x: (target.x * 100) + 50,
-                        y: (target.y * 100) + 95
-                    }, 1000).call(function () {
-                        eachHero.gotoAndPlay("stand");
-                    });
-
-                createjs.Tween.get(eachNameplate, {
+            createjs.Tween.get(eachHero, {
                     loop: false
-                }).to({
-                    x: (target.x * 100) + 25,
-                    y: (target.y * 100) + 100
-                }, 1000)
+                })
+                .to({
+                    x: (target.x * 100) + 50,
+                    y: (target.y * 100) + 95
+                }, 1000).call(function () {
+                    eachHero.gotoAndPlay("stand");
+                });
 
-                let pID = PlayerTurnData.playerID;
+            createjs.Tween.get(eachNameplate, {
+                loop: false
+            }).to({
+                x: (target.x * 100) + 25,
+                y: (target.y * 100) + 100
+            }, 1000)
 
-                playerLocation[pID] = {
-                    x: target.x,
-                    y: target.y
-                }
+            let pID = PlayerTurnData.playerID;
+
+            playerLocation[pID] = {
+                x: target.x,
+                y: target.y
             }
+        }
 
-            function availableTiles(pLoc) {
-                for (let i = 0; i <= stage.children.length - 1; i++) {
-                    let aChild = stage.getChildAt(i);
-                    if (aChild.type == "tile") {
-                        if ((aChild.name.x == (pLoc.x + 1) && aChild.name.y == (pLoc.y)) || (aChild.name.x == (pLoc.x -
-                                1) && aChild.name.y == (pLoc.y)) || (aChild.name.x == (pLoc.x) && aChild.name.y == (
-                                pLoc.y + 1)) || (aChild.name.x == (pLoc.x) && aChild.name.y == (pLoc.y - 1))) {
-                            aChild.graphics.beginStroke(aChild.outStroke).setStrokeStyle(2).drawRect(0, 0, 98,
-                                98).endStroke();
-                            aChild.on("mouseover", handleGridEvent);
-                            aChild.on("mouseout", handleGridEvent);
-                            aChild.on("click", handleGridEvent);
-                        } else {
-                            aChild.graphics.beginStroke(aChild.disableStroke).setStrokeStyle(2).drawRect(0, 0,
-                                98, 98).endStroke();
-                            aChild.removeAllEventListeners();
-                        }
+        function availableGrids(pLoc) {
+            for (let i = 0; i <= stage.children.length - 1; i++) {
+                let aChild = stage.getChildAt(i);
+                if (aChild.type == "grid") {
+                    if ((aChild.name.x == (pLoc.x + 1) && aChild.name.y == (pLoc.y)) || (aChild.name.x == (pLoc.x -
+                            1) && aChild.name.y == (pLoc.y)) || (aChild.name.x == (pLoc.x) && aChild.name.y == (
+                            pLoc.y + 1)) || (aChild.name.x == (pLoc.x) && aChild.name.y == (pLoc.y - 1))) {
+                        aChild.graphics.beginStroke(aChild.outStroke).setStrokeStyle(2).drawRect(0, 0, 98,
+                            98).endStroke();
+                        aChild.on("mouseover", handleGridEvent);
+                        aChild.on("mouseout", handleGridEvent);
+                        aChild.on("click", handleGridEvent);
+                    } else {
+                        aChild.graphics.beginStroke(aChild.disableStroke).setStrokeStyle(2).drawRect(0, 0,
+                            98, 98).endStroke();
+                        aChild.removeAllEventListeners();
                     }
                 }
             }
+        }
 
-            function attackControls(advs, iyPos) {
+        function mOpen() {
+            document.getElementById('mdlCombat').style.display = "block";
+        }
 
-                let yPos = ((iyPos * 2) * 100);
+        function mClose() {
+            document.getElementById('mdlCombat').style.display = "none";
+        }
 
-                let cDC = new createjs.Container();
-                let tAdv = new createjs.Text(advs, "20px Arial", "#ff7700");
-                let tPA = new createjs.Text("Power Attack", "20px Arial", "#ff7700");
-                let tDA = new createjs.Text("Defensive Attack", "20px Arial", "#ff7700");
-                let tMM = new createjs.Text("Magic Missiles", "20px Arial", "#ff7700");
-                let tRT = new createjs.Text("Retreat", "20px Arial", "#ff7700");
-                let bAdv = new createjs.Shape();
-                let bPA = new createjs.Shape();
-                let bDA = new createjs.Shape();
-                let bMM = new createjs.Shape();
-                let bRT = new createjs.Shape();
+        function setAttack(advs) {
+            var attackRow = document.getElementById("mdlAttack");
+            var attackCol = document.createElement("div");
 
-                tAdv.y = 40;
-                tPA.y = 140;
-                tDA.y = 240;
-                tMM.y = 340;
-                tRT.y = 440;
+            var aLbl = document.createElement("p");
+            var a1 = document.createElement("button");
+            var a2 = document.createElement("button");
+            var a3 = document.createElement("button");
+            var a4 = document.createElement("button");
+            var pad = document.createElement("p");
 
-                tAdv.x = 0;
-                tPA.x = 10;
-                tDA.x = 10;
-                tMM.x = 10;
-                tRT.x = 10;
+            attackCol.className = "col-md-4 text-center";
+            attackCol.style = "display: inline-block;float: none;";
+            aLbl.style = "word-wrap: break-word";
+            a1.className = "btn-block btn-primary";
+            a2.className = "btn-block btn-primary";
+            a3.className = "btn-block btn-primary";
+            a4.className = "btn-block btn-primary";
 
-                bAdv.graphics.beginFill("white").beginStroke("#808080").setStrokeStyle(2).drawRect(yPos, 0, 198, 98);
-                bPA.graphics.beginFill("white").beginStroke("#808080").setStrokeStyle(2).drawRect(yPos, 100, 198, 98);
-                bDA.graphics.beginFill("white").beginStroke("#808080").setStrokeStyle(2).drawRect(yPos, 200, 198, 98);
-                bMM.graphics.beginFill("white").beginStroke("#808080").setStrokeStyle(2).drawRect(yPos, 300, 198, 98);
-                bRT.graphics.beginFill("white").beginStroke("#808080").setStrokeStyle(2).drawRect(yPos, 400, 198, 98);
+            aLbl.innerHTML = "<h3>Second</h3>" + advs + "<br>HP:20<br>Strength:1<br>Magic:3<br>Cunning:1"
+            a1.innerHTML = "Action 1";
+            a2.innerHTML = "Action 2";
+            a3.innerHTML = "Action 3";
+            a4.innerHTML = "Action 4";
 
-                bPA.name = "powerAttack";
-                bDA.name = "defensiveAttack";
-                bMM.name = "magicMissles";
-                bRT.name = "retreat";
+            attackCol.appendChild(aLbl);
+            attackCol.appendChild(a1);
+            attackCol.appendChild(a2);
+            attackCol.appendChild(a3);
+            attackCol.appendChild(a4);
+            attackCol.appendChild(pad);
+            attackRow.appendChild(attackCol);
+        }
 
-                bPA.on("click", handleAttackEvent);
-                bDA.on("click", handleAttackEvent);
-                bMM.on("click", handleAttackEvent);
-                bRT.on("click", handleAttackEvent);
+        function setDefend() {
+            var defendPanel = document.getElementById("mdlDefend");
 
-                cDC.name = "p" + advs;
-                cDC.y = yPos;
-                cDC.x = 0;
+            defendPanel.innerHTML = "";
 
-                cDC.addChild(bAdv, bPA, bDA, bMM, bRT);
-                cDC.addChild(tAdv, tPA, tDA, tMM, tRT);
-                stage.addChild(cDC);
-            }
+            var dLbl = document.createElement("p");
+            var d1 = document.createElement("button");
+            var d2 = document.createElement("button");
+            var d3 = document.createElement("button");
+            var d4 = document.createElement("button");
 
-            function defensiveControls(iyPos) {
+            dLbl.style = "word-wrap: break-word";
+            d1.className = "btn-block btn-primary";
+            d2.className = "btn-block btn-primary";
+            d3.className = "btn-block btn-primary";
+            d4.className = "btn-block btn-primary";
 
-                let yPos = ((iyPos * 2) * 100);
+            dLbl.innerHTML = "<h3>First</h3>Defensive Action<br>HP:20<br>Strength:1<br>Magic:3<br>Cunning:1"
+            d1.innerHTML = "Action 1";
+            d2.innerHTML = "Action 2";
+            d3.innerHTML = "Action 3";
+            d4.innerHTML = "Action 4";
 
-                let cDC = new createjs.Container();
-                let tLbl = new createjs.Text("Defensive Actions", "20px Arial", "#ff7700");
-                let tD1 = new createjs.Text("Counter Attack", "20px Arial", "#ff7700");
-                let tD2 = new createjs.Text("Block", "20px Arial", "#ff7700");
-                let tD3 = new createjs.Text("Resist", "20px Arial", "#ff7700");
-                let tD4 = new createjs.Text("Focus", "20px Arial", "#ff7700");
-                let bLbl = new createjs.Shape();
-                let bD1 = new createjs.Shape();
-                let bD2 = new createjs.Shape();
-                let bD3 = new createjs.Shape();
-                let bD4 = new createjs.Shape();
+            defendPanel.appendChild(dLbl);
+            defendPanel.appendChild(d1);
+            defendPanel.appendChild(d2);
+            defendPanel.appendChild(d3);
+            defendPanel.appendChild(d4);
 
-                tLbl.y = 40;
-                tD1.y = 140;
-                tD2.y = 240;
-                tD3.y = 340;
-                tD4.y = 440;
+        }
 
-                tLbl.x = yPos + 10;
-                tD1.x = yPos + 10;
-                tD2.x = yPos + 10;
-                tD3.x = yPos + 10;
-                tD4.x = yPos + 10;
+        socket.on('endTurn', function (endTurnData, iTurnCount) {
 
-                bLbl.graphics.beginFill("white").beginStroke("#808080").setStrokeStyle(2).drawRect(yPos, 0, 198, 98);
-                bD1.graphics.beginFill("white").beginStroke("#808080").setStrokeStyle(2).drawRect(yPos, 100, 198, 98);
-                bD2.graphics.beginFill("white").beginStroke("#808080").setStrokeStyle(2).drawRect(yPos, 200, 198, 98);
-                bD3.graphics.beginFill("white").beginStroke("#808080").setStrokeStyle(2).drawRect(yPos, 300, 198, 98);
-                bD4.graphics.beginFill("white").beginStroke("#808080").setStrokeStyle(2).drawRect(yPos, 400, 198, 98);
+            var brawlSprite = queue.getResult("brawlData");
 
-                bD1.name = "counterAttack";
-                bD2.name = "Block";
-                bD3.name = "Resist";
-                bD4.name = "Focus";
+            mClose();
+            document.getElementById("mdlAttack").innerHTML = "";
 
-                bD1.on("click", handleDefendEvent);
-                bD2.on("click", handleDefendEvent);
-                bD3.on("click", handleDefendEvent);
-                bD4.on("click", handleDefendEvent);
+            turnCount = iTurnCount;
+            document.getElementById("turn").innerHTML = turnCount;
 
-                cDC.name = "defendMenu";
-                cDC.y = yPos;
-                cDC.x = 0;
-
-                cDC.addChild(bLbl, bD1, bD2, bD3, bD4);
-                cDC.addChild(tLbl, tD1, tD2, tD3, tD4);
-                stage.addChild(cDC);
-            }
-
-            socket.on('endTurn', function (endTurnData) {
-
-                if (stage.getChildByName("m" + sessionStorage.id)) {
-                    stage.removeChild(stage.getChildByName("m" + sessionStorage.id));
-                }
-
+            if (endTurnData.length != 0) {
                 for (let i = 0; i <= (endTurnData.length - 1); i++) {
 
                     switch (endTurnData[i].actionType) {
                         case "move":
                             movePlayer(endTurnData[i]);
                             if (endTurnData[i].playerID == sessionStorage.id) {
-                                availableTiles(endTurnData[i].target);
+                                availableGrids(endTurnData[i].target);
                             };
                             break;
                         case "init":
                             if (endTurnData[i].playerID == sessionStorage.id) {
-                                availableTiles(playerLocation[sessionStorage.id]);
+                                availableGrids(playerLocation[sessionStorage.id]);
                             };
                             break;
                         default:
                             break;
                     }
                 }
+            }
 
-                for (let n = 0; n <= (Object.keys(playerLocation).length - 1); n++) {
-                    let pOX = Object.keys(playerLocation)[n];
-                    let pX = playerLocation[pOX];
-                    let eachHero = stage.getChildByName(pOX);
-                    let eachNameplate = stage.getChildByName("n" + pOX);
-                    for (let i = 0; i <= (Object.keys(playerLocation).length - 1); i++) {
 
-                        if (i != n) {
-                            let pOY = Object.keys(playerLocation)[i];
-                            let pY = playerLocation[pOY];
-                            if (pX.x == pY.x && pX.y == pY.y) {
-                                playerLocation[pOX].inCombat = new Array();
-                                playerLocation[pOX].inCombat.push(pOY);
-                            };
-                        };
-                    };
+            for (let n = 0; n <= (Object.keys(playerLocation).length - 1); n++) {
+                let pOX = Object.keys(playerLocation)[n];
+                let pX = playerLocation[pOX];
+                let eachHero = stage.getChildByName(pOX);
+                let eachNameplate = stage.getChildByName("n" + pOX);
+                for (let i = 0; i <= (Object.keys(playerLocation).length - 1); i++) {
 
-                    if (Array.isArray(playerLocation[pOX].inCombat)) {
-
-                        let advs = playerLocation[pOX].inCombat;
-
-                        if (sessionStorage.id == pOX) {
-
-                            let modalBG = new createjs.Shape();
-                            modalBG.graphics.beginFill("DeepSkyBlue").drawRect(0, 0, (getbfgridxy() * 100), (
-                                getbfgridxy() * 100));
-                            modalBG.alpha = .3;
-                            modalBG.name = "m" + pOX;
-                            modalBG.on("mouseover", function () {
-                                return false;
-                            });
-                            modalBG.on("mouseout", function () {
-                                return false;
-                            });
-                            modalBG.on("click", function () {
-                                return false;
-                            });
-                            stage.addChild(modalBG);
-                            for (let i = 0; i <= (advs.length - 1); i++) {
-                                attackControls(advs[i], i);
-                            };
-                            defensiveControls(advs.length);
-                        }
-
-                        eachHero.alpha = 0;
-                        eachNameplate.alpha = 0;
-                        let brawl = new createjs.Sprite(brawlSprite, "fight");
-                        brawl.x = (pX.x * 100) - 10;
-                        brawl.y = (pX.y * 100) - 6;
-                        brawl.name = "b" + pOX;
-                        stage.addChild(brawl);
-                    } else {
-                        eachHero.alpha = 1;
-                        eachNameplate.alpha = 1;
-                        if (stage.getChildByName("b" + pOX)) {
-                            stage.removeChild(stage.getChildByName("b" + pOX));
+                    if (i != n) {
+                        let pOY = Object.keys(playerLocation)[i];
+                        let pY = playerLocation[pOY];
+                        if (pX.x == pY.x && pX.y == pY.y) {
+                            playerLocation[pOX].inCombat = new Array();
+                            playerLocation[pOX].inCombat.push(pOY);
                         };
                     };
                 };
 
-                var x = document.getElementById("y");
-                x.deleteRow(0);
-                var row = x.insertRow(0);
+                if (Array.isArray(playerLocation[pOX].inCombat)) {
 
-                for (let i = 0; i <= (getPlayers().length - 1); i++) {
-                    let cell = row.insertCell(i);
-                    let playerData = getPlayers()[i];
-                    if (playerData.pID == sessionStorage.id) {
-                        cell.style.color = "#ffa500";
+                    let advs = playerLocation[pOX].inCombat;
+
+                    if (sessionStorage.id == pOX) {
+
+                        for (let i = 0; i <= (advs.length - 1); i++) {
+                            setAttack(advs[i]);
+                        };
+                        setDefend();
+                        mOpen();
                     }
-                    cell.innerHTML = playerData.dName + "<br>" + playerData.pClass + "<br>" + playerData.hp;
+
+                    eachHero.alpha = 0;
+                    eachNameplate.alpha = 0;
+                    let brawl = new createjs.Sprite(brawlSprite, "fight");
+                    brawl.x = (pX.x * 100) - 10;
+                    brawl.y = (pX.y * 100) - 6;
+                    brawl.name = "b" + pOX;
+                    stage.addChild(brawl);
+                } else {
+                    eachHero.alpha = 1;
+                    eachNameplate.alpha = 1;
+                    if (stage.getChildByName("b" + pOX)) {
+                        stage.removeChild(stage.getChildByName("b" + pOX));
+                    };
+                };
+            };
+
+            var x = document.getElementById("y");
+            x.deleteRow(0);
+            var row = x.insertRow(0);
+
+            for (let i = 0; i <= (getPlayers().length - 1); i++) {
+                let cell = row.insertCell(i);
+                let playerData = getPlayers()[i];
+                if (playerData.pID == sessionStorage.id) {
+                    cell.style.color = "#ffa500";
                 }
-            });
+                cell.innerHTML = playerData.dName + "<br>" + playerData.pClass + "<br>" + playerData.hp;
+            }
+        });
 
-            socket.on('invalidGame', function () {
-                window.location.href = 'landing.html';
-            });
+        socket.on('invalidGame', function () {
+            window.location.href = 'landing.html';
+        });
 
-            socket.on('gameTime', function (time) {
-                document.getElementById("time").innerHTML = time;
-            });
-        }
+        socket.on('gameTime', function (time) {
+            document.getElementById("time").innerHTML = time;
+        });
+
+        socket.on('turnEnded', function (turnData) {
+            document.getElementById("x").innerHTML = turnData;
+        });
     </script>
 </body>
 

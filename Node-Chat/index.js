@@ -11,10 +11,10 @@ var bcrypt = require('bcrypt');
 var numUsersLobby = 0;
 var url = 'mongodb://localhost:27017/dkmmc';
 
-var WaitForMore = Date.now() + 15000;
+var WaitForMore = Date.now() + 1000;
 
 function setWaitForMore() {
-  WaitForMore = Date.now() + 15000;
+  WaitForMore = Date.now() + 1000;
 }
 
 function getWaitforMore() {
@@ -35,8 +35,6 @@ app.use(express.static('public'));
 
 //opens root socket connection
 io.on('connection', function (socket) {
-
-  //console.log('a user connected to root');
 
   socket.on('createUser', function (user) {
 
@@ -148,7 +146,6 @@ lobbynsp.on('connection', function (socket) {
 
   var t = setInterval(lobbyStatus, 1000);
 
-  console.log('user connected to lobby');
   numUsersLobby++;
   console.log('User count : ' + numUsersLobby);
 
@@ -180,6 +177,32 @@ lobbynsp.on('connection', function (socket) {
 
   socket.on('roleCall', function (pJSON) {
 
+    switch (pJSON.pClass) {
+      case "Magii":
+        pJSON.hp = 20;
+        pJSON.might = 1;
+        pJSON.magic = 3;
+        pJSON.cunning = 1;
+        break;
+      case "Warrior":
+        pJSON.hp = 20;
+        pJSON.might = 3;
+        pJSON.magic = 1;
+        pJSON.cunning = 1;
+        break;
+      case "Rogue":
+        pJSON.hp = 20;
+        pJSON.might = 2;
+        pJSON.magic = 2;
+        pJSON.cunning = 2;
+        break;
+      default:
+        pJSON.hp = 0;
+        pJSON.might = 0;
+        pJSON.magic = 0;
+        pJSON.cunning = 0;
+    }
+
     MongoClient.connect(url, function (err, db) {
       assert.equal(null, err);
       addPlayer(db, pJSON, function () {
@@ -199,9 +222,12 @@ lobbynsp.on('connection', function (socket) {
               pID: pJSON.pID,
               dName: pJSON.dName,
               pClass: pJSON.pClass,
-              hp:20,
-              startX: (Math.floor((Math.random() * 4))),
-              startY: (Math.floor((Math.random() * 4))),
+              "hp": pJSON.hp,
+              "might": pJSON.might,
+              "magic": pJSON.magic,
+              "cunning": pJSON.cunning,
+              x: (Math.floor((Math.random() * 4))),
+              y: (Math.floor((Math.random() * 4))),
               loaded: false
             }
 
@@ -222,8 +248,9 @@ lobbynsp.on('connection', function (socket) {
     // Use connect method to connect to the server
     MongoClient.connect(url, function (err, db) {
       assert.equal(null, err);
-      createGame(db, function () {
+      createGame(db, function (gameData) {
         db.close();
+        gameThread(gameData);
       });
     });
 
@@ -240,7 +267,7 @@ lobbynsp.on('connection', function (socket) {
           'startTime': result.ops[0].startTime
         }
         lobbynsp.emit('gameID', gameData);
-        callback(result);
+        callback(gameData);
       });
     };
   });
@@ -264,17 +291,13 @@ lobbynsp.on('connection', function (socket) {
 
 var ingame = io.of('/ingame');
 
-ingame.on('connection', function (socket) {
+function gameThread(gameData) {
 
-  var gameID;
-  var gameTime = 0;
+  var gameID = ObjectId(gameData._id).toString();
+  var gameTime = gameData.startTime;
 
   function getGameID() {
     return gameID;
-  }
-
-  function setGameID(iGameID) {
-    gameID = iGameID;
   }
 
   function getGameTime() {
@@ -285,9 +308,151 @@ ingame.on('connection', function (socket) {
     gameTime = iGameTime + 15000;
   }
 
-  socket.on('disconnect', function () {
-    clearInterval(t);
-  });
+  var loading = setInterval(checkPlayers, 1000);
+
+  function checkPlayers() {
+
+    MongoClient.connect(url, function (err, db) {
+      assert.equal(null, err);
+      getGameInit(db, getGameID(), function (playersStatus) {
+        db.close();
+        var readyCheck = true;
+
+        for (let i = 0; i < playersStatus.length; i++) {
+          if (playersStatus[i].loaded == false) {
+            readyCheck = false;
+          }
+        }
+
+        if (readyCheck == true) {
+          ingame.in(gameData._id).emit("allLoaded");
+          gamePlay(playersStatus);
+          clearInterval(loading);
+        }
+
+      });
+    });
+
+    var getGameInit = function (db, iGameID, callback) {
+      // Get the turn collection
+      var collection = db.collection('game');
+      // Find turn
+      collection.find({
+        _id: ObjectId(iGameID)
+      }).toArray(function (err, result) {
+        assert.equal(err, null);
+        callback(result[0].players);
+      });
+    }
+  }
+
+  function gamePlay(players) {
+
+    var t = setInterval(turnTime, 1000);
+    var c = 5;
+    var turnCount = 0;
+    var inactive = 0;
+
+    function findPlayer(value) {
+      for (let i = 0; i < players.length; i++) {
+        if (players[i].pID == value) {
+          return i;
+        }
+      }
+    }
+
+    function turnTime() {
+
+      if (c < 0) {
+        MongoClient.connect(url, function (err, db) {
+          assert.equal(null, err);
+
+          getTurn(db, function (turnDB) {
+            db.close();
+            turnCount++;
+            ingame.in(gameData._id).emit('endTurn', turnDB, turnCount);
+
+            if (turnDB.length != 0) {
+              for (let i = 0; i <= (turnDB.length - 1); i++) {
+                switch (turnDB[i].actionType) {
+                  case "move":
+                    players[findPlayer(turnDB[i].playerID)].x = turnDB[i].target.x;
+                    players[findPlayer(turnDB[i].playerID)].y = turnDB[i].target.y;
+                    break;
+                  default:
+                    break;
+                }
+
+
+                // for (let i = 0; i <= (turnDB.length - 1); i++) {
+
+                //   switch (turnDB[i].actionType) {
+                //     case "move":
+                //       movePlayer(endTurnData[i]);
+                //       if (endTurnData[i].playerID == sessionStorage.id) {
+                //         availableGrids(endTurnData[i].target);
+                //       };
+                //       break;
+                //     case "init":
+                //       if (endTurnData[i].playerID == sessionStorage.id) {
+                //         availableGrids(playerLocation[sessionStorage.id]);
+                //       };
+                //       break;
+                //     default:
+                //       break;
+                //  }
+                //}
+              }
+            }
+
+            if (turnDB.length == 0) {
+              inactive++;
+              if (inactive > 3) {
+                clearInterval(t);
+                ingame.in(gameData._id).emit('gameTime', 'GAME OVER!');
+              }
+            } else {
+              inactive = 0;
+            }
+            c = 16;
+          });
+        });
+      } else if (c > 15) {
+        ingame.in(gameData._id).emit('gameTime', 'Taking turn now');
+      } else {
+        ingame.in(gameData._id).emit('gameTime', c);
+      }
+      c--;
+    }
+    var getTurn = function (db, callback) {
+      // Get the turn collection
+      var collection = db.collection('turn');
+      // Find turn
+      collection.find({
+        gameID: getGameID(),
+        turn: turnCount
+      }).toArray(function (err, turnDB) {
+        assert.equal(err, null);
+        callback(turnDB);
+      });
+    }
+  }
+
+}
+
+ingame.on('connection', function (socket) {
+
+  var gameID;
+
+  function getGameID() {
+    return gameID;
+  }
+
+  function setGameID(iGameID) {
+    gameID = iGameID;
+  }
+
+  socket.on('disconnect', function () {});
 
   socket.on('gameID', function (iGameID, pID) {
     setGameID(iGameID);
@@ -297,12 +462,12 @@ ingame.on('connection', function (socket) {
     MongoClient.connect(url, function (err, db) {
       assert.equal(null, err);
 
-      getGameTimeDB(db, iGameID, pID, function () {
+      setLoaded(db, iGameID, pID, function () {
         db.close();
       });
     });
 
-    var getGameTimeDB = function (db, iGameID, iPID, callback) {
+    var setLoaded = function (db, iGameID, iPID, callback) {
       // Get the game collection
       var collection = db.collection('game');
       // Find game      
@@ -321,7 +486,6 @@ ingame.on('connection', function (socket) {
             assert.equal(err, null);
             if (result) {
               var game = result.value;
-              setGameTime(game.startTime);
               var gridSize = game.players.length;
               gridSize = Math.ceil(Math.sqrt(gridSize * 6));
               var gameJSON = {
@@ -337,15 +501,10 @@ ingame.on('connection', function (socket) {
       } else {
         socket.emit('invalidGame');
       }
-
     };
-
   });
 
-  var t = setInterval(turnTime, 1000);
-
   socket.on('turnData', function (turnEvent) {
-    turnEvent.endTime = getGameTime();
     turnEvent.gameID = getGameID();
     // Use connect method to connect to the server
     MongoClient.connect(url, function (err, db) {
@@ -362,8 +521,8 @@ ingame.on('connection', function (socket) {
     // Update turn with most recent data
     collection.update({
         gameID: ObjectId(getGameID()),
-        endTime: getGameTime(),
-        heroName: turnEvent.playerID
+        turn: turnEvent.turn,
+        playerID: turnEvent.playerID
       }, turnEvent, {
         upsert: true
       },
@@ -372,42 +531,5 @@ ingame.on('connection', function (socket) {
         assert.equal(1, result.result.n);
         callback();
       });
-  }
-
-  function turnTime() {
-    var timeLeft = Math.round((getGameTime() - Date.now()) / 1000);
-
-    if (timeLeft < 0) {
-      MongoClient.connect(url, function (err, db) {
-        assert.equal(null, err);
-
-        getTurn(db, function () {
-          db.close();
-          setGameTime(getGameTime() + 3000);
-        });
-      });
-
-    } else if (timeLeft > 15) {
-      socket.emit('gameTime', 'Taking turn now');
-    } else {
-      socket.emit('gameTime', timeLeft);
-    }
-
-  }
-  var getTurn = function (db, callback) {
-    // Get the turn collection
-    var collection = db.collection('turn');
-    // Find turn
-    collection.find({
-      gameID: getGameID(),
-      endTime: getGameTime()
-    }).toArray(function (err, turnDB) {
-      assert.equal(err, null);
-      if (turnDB.length != 0) {
-        var endTurnData = turnDB;
-        socket.emit('endTurn', endTurnData);
-      }
-      callback();
-    });
   }
 });

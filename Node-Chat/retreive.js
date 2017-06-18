@@ -17,9 +17,9 @@ MongoClient.connect(url, function(err, db) {
 
 var findDocuments = function(db, callback) {
   // Get the documents collection
-  var collection = db.collection('users');
+  var collection = db.collection('turn');
   // Find some documents
-  collection.find().toArray(function(err, docs) {
+  collection.find({gameID: "59456de90345df28546cb564"}).toArray(function(err, docs) {
     assert.equal(err, null);
     console.log("Found the following records");
     console.log(JSON.stringify(docs));

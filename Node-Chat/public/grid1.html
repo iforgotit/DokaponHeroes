@@ -1,0 +1,584 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+
+    <title>Dokapon Heroes</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="../../assets/css/bootstrap.min.css" rel="stylesheet">
+
+    <script src="https://code.createjs.com/easeljs-0.8.2.min.js"></script>
+    <script src="https://code.createjs.com/tweenjs-0.6.2.min.js"></script>
+    <script src="https://code.createjs.com/preloadjs-0.6.2.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+
+<body onload="init();">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-10">
+                <canvas id="battlefield" width="500"></canvas>
+                <p id="x"></p>
+                <table id="y" style="border-spacing:10px;">
+                    <tr></tr>
+                </table>
+                <p id="z"></p>
+            </div>
+            <div class="col-sm-2">
+                Turn Timer:
+                <p id="time"></p>
+                <input id="btnReturn" type="button" class="btn btn-lg btn-primary" style="width:100%; white-space:normal;" onclick="landing()"
+                    value="Return to Main Lobby">
+            </div>
+        </div>
+        <div id="mdlCombat" class="modal modal-fade modal-lg">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Combat Menu</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-4" id="mdlDefend" align="center"></div>
+                            <div style="overflow-x: auto;white-space: nowrap;" class="container-fluid col-md-8">
+                                <div class="row" id="mdlAttack">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        var queue;
+        var stage = new createjs.Stage("battlefield");
+        var bfgridxy;
+        var socket = io('/ingame');
+        var players;
+
+        function setbfgridxy(size) {
+            bfgridxy = size;
+            var canvas = document.getElementById("battlefield");
+            if (size > 5) {
+                canvas.height = (size * 100) + 20;
+                canvas.width = (size * 100) + 20;
+            } else {
+                canvas.height = 520;
+                canvas.width = 520;
+            }
+
+            loadAsset();
+            queue.load();
+        }
+
+        function getbfgridxy() {
+            return bfgridxy;
+        }
+
+        function setPlayers(playerObject) {
+            players = playerObject;
+        }
+
+        function getPlayers() {
+            return players;
+        }
+
+        function stop() {
+            if (preload != null) {
+                preload.close();
+            }
+        }
+
+        socket.on('gameJSON', function (gameJSON) {
+            setbfgridxy(gameJSON.size);
+            setPlayers(gameJSON.players);
+        })
+
+
+
+        function landing() {
+            window.location.href = 'landing.html';
+        }
+
+        function init() {
+            if (sessionStorage.id == undefined) {
+                window.location.href = 'index.html';
+                return false;
+            }
+
+            var query = window.location.search.substring(1);
+            var vars = query.split("&");
+            for (var i = 0; i < vars.length; i++) {
+                var pair = vars[i].split("=");
+                if (pair[1]) {
+                    socket.emit('gameID', pair[1], sessionStorage.id)
+                }
+            }
+
+            distractor();
+
+            createjs.Ticker.setFPS(30);
+            createjs.Ticker.on("tick", handleTick);
+
+            queue = new createjs.LoadQueue(false);
+
+            queue.on("complete", handleComplete);
+            queue.on("error", handleError);
+        }
+
+        function handleError(event) {
+            var item = event.data;
+            var div = document.getElementById("z");
+            if (div != null) {
+                div.innerHTML = "<label>Error " + (item.id == "NoFileHere.png" ? ":)" : ":(") + "</label>";
+                div.className = "gridBox error";
+            }
+        }
+
+        function distractor() {
+            var ldRect = new createjs.Shape();
+            var ldCircle = new createjs.Shape();
+
+            var ldText = new createjs.Text("Loading...", "bold 70px Arial", "#ff7700");
+            ldText.x = 25;
+            ldText.y = 50;
+
+            ldRect.graphics.beginFill("#2b3e50").drawRect(0, 0, 500, 500);
+            ldRect.x = 50;
+            ldRect.y = 0;
+            createjs.Tween.get(ldRect, {
+                    loop: true
+                })
+                .to({
+                    x: 400
+                }, 3000, createjs.Ease.getPowInOut(4))
+                .to({
+                    x: 50
+                }, 3000, createjs.Ease.getPowInOut(4));
+
+            ldCircle.graphics.beginFill("Crimson").drawCircle(0, 0, 40);
+            ldCircle.x = 50;
+            ldCircle.y = 90;
+            createjs.Tween.get(ldCircle, {
+                    loop: true
+                })
+                .to({
+                    x: 400
+                }, 3000, createjs.Ease.getPowInOut(4))
+                .to({
+                    x: 50
+                }, 3000, createjs.Ease.getPowInOut(4));
+
+            stage.addChild(ldText);
+            stage.addChild(ldRect);
+            stage.addChild(ldCircle);
+            stage.update();
+        }
+
+        function loadAsset() {
+            queue.loadManifest([{
+                id: "grass",
+                src: "../../assets/img/grass.png"
+            }, {
+                id: "mightData",
+                src: "../../assets/sprites/might.json",
+                type: "spritesheet",
+                crossOrigin: true
+            }, {
+                id: "magicData",
+                src: "../../assets/sprites/magic.json",
+                type: "spritesheet",
+                crossOrigin: true
+            }, {
+                id: "cunningData",
+                src: "../../assets/sprites/cunning.json",
+                type: "spritesheet",
+                crossOrigin: true
+            }, {
+                id: "brawlData",
+                src: "../../assets/sprites/brawl.json",
+                type: "spritesheet",
+                crossOrigin: true
+            }]);
+        }
+
+        function handleTick() {
+            stage.update();
+        }
+
+        function handleComplete() {
+            var turnSelected = undefined;
+            var playerLocation = new Object();
+
+            stage.removeAllChildren();
+
+            document.getElementById("z").innerHTML = "";
+
+            createjs.Touch.enable(stage);
+            stage.enableMouseOver(10);
+
+            var grass = queue.getResult("grass");
+            var mightSprite = queue.getResult("mightData");
+            var magicSprite = queue.getResult("magicData");
+            var cunningSprite = queue.getResult("cunningData");
+            var brawlSprite = queue.getResult("brawlData");
+
+            // The good stuff
+            for (var y = 0; y < (getbfgridxy()); y++) {
+                for (var x = 0; x < (getbfgridxy()); x++) {
+                    var grid = new createjs.Shape();
+                    grid.x = x * 100;
+                    grid.y = y * 100;
+                    grid.overStroke = "#00FF00";
+                    grid.outStroke = "#3281FF";
+                    grid.disableStroke = "#808080";
+                    grid.clickStroke = "#000000";
+                    grid.type = "tile";
+                    grid.name = {
+                        'x': x,
+                        'y': y
+                    };
+                    grid.graphics.beginStroke(grid.disableStroke).beginBitmapFill(grass).setStrokeStyle(2).drawRect(
+                        0, 0,
+                        98, 98).endStroke();
+                    stage.addChild(grid);
+                }
+            }
+
+            for (var i = 0; i <= (getPlayers().length - 1); i++) {
+                var heroData = getPlayers()[i];
+                if (heroData.pClass != "Observer") {
+                    var spriteSheet;
+                    switch (heroData.pClass) {
+                        case "Magii":
+                            spriteSheet = magicSprite;
+                            break;
+                        case "Warrior":
+                            spriteSheet = mightSprite;
+                            break;
+                        case "Rogue":
+                            spriteSheet = cunningSprite;
+                            break;
+                    }
+                    var hero = new createjs.Sprite(spriteSheet, "stand");
+                    hero.x = (heroData.startX * 100) + 50;
+                    hero.y = (heroData.startY * 100) + 95;
+                    hero.type = "hero";
+                    hero.name = heroData.pID;
+
+                    playerLocation[heroData.pID] = {
+                        x: heroData.startX,
+                        y: heroData.startY
+                    }
+
+                    var nameplate = new createjs.Text(heroData.dName, "12px Arial", "#ff7700");
+                    nameplate.x = (heroData.startX * 100) + 25;
+                    nameplate.y = (heroData.startY * 100) + 100;
+                    nameplate.name = "n" + heroData.pID;
+
+                    stage.addChild(nameplate);
+                    stage.addChild(hero);
+                }
+
+            }
+
+            stage.update();
+
+            var initJSON = {
+                "playerID": sessionStorage.id,
+                "actionType": "init"
+            }
+            socket.emit('turnData', initJSON);
+
+            function handleGridEvent(event) {
+                var target = event.target;
+                if (event.type == "mouseover" && turnSelected == undefined) {
+                    target.graphics.beginStroke(target.overStroke).setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
+                } else if (event.type == "mouseout" && turnSelected == undefined) {
+                    target.graphics.beginStroke(target.outStroke).setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
+                } else if (event.type == "click" && turnSelected == undefined) {
+                    target.graphics.beginStroke(target.clickStroke).setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
+                    turnSelected = target;
+                    var turnJSON = {
+                        "playerID": sessionStorage.id,
+                        "stageX": event.stageX,
+                        "actionType": "move",
+                        "target": target.name
+                    }
+                    socket.emit('turnData', turnJSON);
+                }
+            }
+
+            function handleDefendEvent(event) {
+                var target = event.target;
+                if (event.type == "click" && turnSelected == undefined) {
+                    target.graphics.beginStroke("#000000").setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
+                    var turnJSON = {
+                        "playerID": sessionStorage.id,
+                        "actionType": "defend",
+                        "target": target.name
+                    }
+                    document.getElementById("z").innerHTML = JSON.stringify(turnJSON);
+                    //socket.emit('turnData', turnJSON);
+                }
+            }
+
+            function handleAttackEvent(event) {
+                var target = event.target;
+                if (event.type == "click" && turnSelected == undefined) {
+                    target.graphics.beginStroke("#000000").setStrokeStyle(2).drawRect(0, 0, 98, 98).endStroke();
+                    var turnJSON = {
+                        "playerID": sessionStorage.id,
+                        "actionType": "attack",
+                        "target": target.name
+                    }
+                    document.getElementById("x").innerHTML = JSON.stringify(turnJSON);
+                    //socket.emit('turnData', turnJSON);
+                }
+            }
+
+            function movePlayer(PlayerTurnData) {
+                let target = PlayerTurnData.target;
+                if (turnSelected != undefined) {
+                    turnSelected.graphics.beginStroke(turnSelected.outStroke).setStrokeStyle(2).drawRect(
+                        0,
+                        0,
+                        98, 98).endStroke();
+                    turnSelected = undefined;
+                }
+                let eachHero = stage.getChildByName(PlayerTurnData.playerID);
+                let eachNameplate = stage.getChildByName("n" + PlayerTurnData.playerID);
+                if (eachHero.x > PlayerTurnData.stageX) {
+                    eachHero.scaleX = -1;
+                    eachHero.gotoAndPlay("walk");
+                } else {
+                    eachHero.gotoAndPlay("walk");
+                    eachHero.scaleX = 1;
+                }
+
+                createjs.Tween.get(eachHero, {
+                        loop: false
+                    })
+                    .to({
+                        x: (target.x * 100) + 50,
+                        y: (target.y * 100) + 95
+                    }, 1000).call(function () {
+                        eachHero.gotoAndPlay("stand");
+                    });
+
+                createjs.Tween.get(eachNameplate, {
+                    loop: false
+                }).to({
+                    x: (target.x * 100) + 25,
+                    y: (target.y * 100) + 100
+                }, 1000)
+
+                let pID = PlayerTurnData.playerID;
+
+                playerLocation[pID] = {
+                    x: target.x,
+                    y: target.y
+                }
+            }
+
+            function availableTiles(pLoc) {
+                for (let i = 0; i <= stage.children.length - 1; i++) {
+                    let aChild = stage.getChildAt(i);
+                    if (aChild.type == "tile") {
+                        if ((aChild.name.x == (pLoc.x + 1) && aChild.name.y == (pLoc.y)) || (aChild.name.x == (pLoc.x -
+                                1) && aChild.name.y == (pLoc.y)) || (aChild.name.x == (pLoc.x) && aChild.name.y == (
+                                pLoc.y + 1)) || (aChild.name.x == (pLoc.x) && aChild.name.y == (pLoc.y - 1))) {
+                            aChild.graphics.beginStroke(aChild.outStroke).setStrokeStyle(2).drawRect(0, 0, 98,
+                                98).endStroke();
+                            aChild.on("mouseover", handleGridEvent);
+                            aChild.on("mouseout", handleGridEvent);
+                            aChild.on("click", handleGridEvent);
+                        } else {
+                            aChild.graphics.beginStroke(aChild.disableStroke).setStrokeStyle(2).drawRect(0, 0,
+                                98, 98).endStroke();
+                            aChild.removeAllEventListeners();
+                        }
+                    }
+                }
+            }
+
+            function mOpen() {
+                document.getElementById('mdlCombat').style.display = "block";
+            }
+
+            function mClose() {
+                document.getElementById('mdlCombat').style.display = "none";
+            }
+
+            function setAttack(advs) {
+                var attackRow = document.getElementById("mdlAttack");
+                var attackCol = document.createElement("div");
+
+                var aLbl = document.createElement("p");
+                var a1 = document.createElement("button");
+                var a2 = document.createElement("button");
+                var a3 = document.createElement("button");
+                var a4 = document.createElement("button");
+                var pad = document.createElement("p");
+
+                attackCol.className = "col-md-4 text-center";
+                attackCol.style = "display: inline-block;float: none;";
+                aLbl.style = "word-wrap: break-word";
+                a1.className = "btn-block btn-primary";
+                a2.className = "btn-block btn-primary";
+                a3.className = "btn-block btn-primary";
+                a4.className = "btn-block btn-primary";
+
+                aLbl.innerHTML = "<h3>Second</h3>" + advs + "<br>HP:20<br>Strength:1<br>Magic:3<br>Cunning:1"
+                a1.innerHTML = "Action 1";
+                a2.innerHTML = "Action 2";
+                a3.innerHTML = "Action 3";
+                a4.innerHTML = "Action 4";
+
+                attackCol.appendChild(aLbl);
+                attackCol.appendChild(a1);
+                attackCol.appendChild(a2);
+                attackCol.appendChild(a3);
+                attackCol.appendChild(a4);
+                attackCol.appendChild(pad);
+                attackRow.appendChild(attackCol);
+            }
+
+            function setDefend() {
+                var defendPanel = document.getElementById("mdlDefend");
+
+                defendPanel.innerHTML = "";
+
+                var dLbl = document.createElement("p");
+                var d1 = document.createElement("button");
+                var d2 = document.createElement("button");
+                var d3 = document.createElement("button");
+                var d4 = document.createElement("button");
+
+                dLbl.style = "word-wrap: break-word";
+                d1.className = "btn-block btn-primary";
+                d2.className = "btn-block btn-primary";
+                d3.className = "btn-block btn-primary";
+                d4.className = "btn-block btn-primary";
+
+                dLbl.innerHTML = "<h3>First</h3>Defensive Action<br>HP:20<br>Strength:1<br>Magic:3<br>Cunning:1"
+                d1.innerHTML = "Action 1";
+                d2.innerHTML = "Action 2";
+                d3.innerHTML = "Action 3";
+                d4.innerHTML = "Action 4";
+
+                defendPanel.appendChild(dLbl);
+                defendPanel.appendChild(d1);
+                defendPanel.appendChild(d2);
+                defendPanel.appendChild(d3);
+                defendPanel.appendChild(d4);
+
+            }
+
+            socket.on('endTurn', function (endTurnData) {
+
+                if (stage.getChildByName("m" + sessionStorage.id)) {
+                    stage.removeChild(stage.getChildByName("m" + sessionStorage.id));
+                }
+
+                mClose();
+                document.getElementById("mdlAttack") = "";
+
+                for (let i = 0; i <= (endTurnData.length - 1); i++) {
+
+                    switch (endTurnData[i].actionType) {
+                        case "move":
+                            movePlayer(endTurnData[i]);
+                            if (endTurnData[i].playerID == sessionStorage.id) {
+                                availableTiles(endTurnData[i].target);
+                            };
+                            break;
+                        case "init":
+                            if (endTurnData[i].playerID == sessionStorage.id) {
+                                availableTiles(playerLocation[sessionStorage.id]);
+                            };
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
+                for (let n = 0; n <= (Object.keys(playerLocation).length - 1); n++) {
+                    let pOX = Object.keys(playerLocation)[n];
+                    let pX = playerLocation[pOX];
+                    let eachHero = stage.getChildByName(pOX);
+                    let eachNameplate = stage.getChildByName("n" + pOX);
+                    for (let i = 0; i <= (Object.keys(playerLocation).length - 1); i++) {
+
+                        if (i != n) {
+                            let pOY = Object.keys(playerLocation)[i];
+                            let pY = playerLocation[pOY];
+                            if (pX.x == pY.x && pX.y == pY.y) {
+                                playerLocation[pOX].inCombat = new Array();
+                                playerLocation[pOX].inCombat.push(pOY);
+                            };
+                        };
+                    };
+
+                    if (Array.isArray(playerLocation[pOX].inCombat)) {
+
+                        let advs = playerLocation[pOX].inCombat;
+
+                        if (sessionStorage.id == pOX) {
+
+                            for (let i = 0; i <= (advs.length - 1); i++) {
+                                setAttack(advs[i]);
+                            };
+                            setDefend();
+                            mOpen();
+                        }
+
+                        eachHero.alpha = 0;
+                        eachNameplate.alpha = 0;
+                        let brawl = new createjs.Sprite(brawlSprite, "fight");
+                        brawl.x = (pX.x * 100) - 10;
+                        brawl.y = (pX.y * 100) - 6;
+                        brawl.name = "b" + pOX;
+                        stage.addChild(brawl);
+                    } else {
+                        eachHero.alpha = 1;
+                        eachNameplate.alpha = 1;
+                        if (stage.getChildByName("b" + pOX)) {
+                            stage.removeChild(stage.getChildByName("b" + pOX));
+                        };
+                    };
+                };
+
+                var x = document.getElementById("y");
+                x.deleteRow(0);
+                var row = x.insertRow(0);
+
+                for (let i = 0; i <= (getPlayers().length - 1); i++) {
+                    let cell = row.insertCell(i);
+                    let playerData = getPlayers()[i];
+                    if (playerData.pID == sessionStorage.id) {
+                        cell.style.color = "#ffa500";
+                    }
+                    cell.innerHTML = playerData.dName + "<br>" + playerData.pClass + "<br>" + playerData.hp;
+                }
+            });
+
+            socket.on('invalidGame', function () {
+                window.location.href = 'landing.html';
+            });
+
+            socket.on('gameTime', function (time) {
+                document.getElementById("time").innerHTML = time;
+            });
+        }
+    </script>
+</body>
+
+</html>
