@@ -54,19 +54,19 @@
 
             var chat = document.getElementById("lichat");
             var chatHTML = '<a class="list-group-item"><h4 class="list-group-item-heading">Welcome ' + sessionStorage
-                .dname +
+                .dName +
                 '</h4><p class="list-group-item-text">Trash talk down here</p></a>';
             chat.innerHTML = chat.innerHTML + chatHTML;
 
             socket.on('chat', function (JSONmsg) {
                 var chat = document.getElementById("lichat");
-                var chatHTML = '<a class="list-group-item"><h4 class="list-group-item-heading">' + JSONmsg.dname +
+                var chatHTML = '<a class="list-group-item"><h4 class="list-group-item-heading">' + JSONmsg.dName +
                     '</h4><p class="list-group-item-text">' + JSONmsg.msg + '</p></a>';
                 chat.innerHTML = chat.innerHTML + chatHTML;
             });
 
             socket.on('attendance', function () {
-                socket.emit('checkin', sessionStorage.dname);
+                socket.emit('checkin', sessionStorage.dName);
                 var userlist = document.getElementById("ulUsers");
                 while (userlist.hasChildNodes()) {
                     userlist.removeChild(userlist.lastChild);
@@ -101,7 +101,7 @@
                 } else {
                     var cleanTxt = escapeHtml(document.getElementById("txtMsg").value);
                     var JSONmsg = {
-                        "dname": sessionStorage.dname,
+                        "dName": sessionStorage.dName,
                         "msg": cleanTxt
                     };
                     socket.emit('msg', JSONmsg);

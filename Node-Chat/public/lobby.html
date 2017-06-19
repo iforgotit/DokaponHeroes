@@ -119,7 +119,7 @@
 
             socket.on('chat', function (JSONmsg) {
                 var chat = document.getElementById("lichat");
-                var chatHTML = '<a class="list-group-item"><h4 class="list-group-item-heading">' + JSONmsg.dname +
+                var chatHTML = '<a class="list-group-item"><h4 class="list-group-item-heading">' + JSONmsg.dName +
                     '</h4><p class="list-group-item-text">' + JSONmsg.msg + '</p></a>';
                 chat.innerHTML = chat.innerHTML + chatHTML;
             });
@@ -139,9 +139,9 @@
             socket.on('attendance', function () {
 
                 if (getSeletedClass() !== undefined) {
-                    socket.emit('checkin', sessionStorage.dname, getSeletedClass());
+                    socket.emit('checkin', sessionStorage.dName, getSeletedClass());
                 } else {
-                    socket.emit('checkin', sessionStorage.dname, false);
+                    socket.emit('checkin', sessionStorage.dName, false);
                 }
                 var userlist = document.getElementById("ulUsers");
                 while (userlist.hasChildNodes()) {
@@ -177,7 +177,7 @@
                         "gID": gameData._id,
                         "size": gameData.size,
                         "pID": sessionStorage.id,
-                        "dName": sessionStorage.dname,
+                        "dName": sessionStorage.dName,
                         "pClass": getSeletedClass()
                     }
                     socket.emit('roleCall', pJSON);
@@ -229,7 +229,7 @@
                 } else {
                     var cleanTxt = escapeHtml(document.getElementById("txtMsg").value);
                     var JSONmsg = {
-                        "dname": sessionStorage.dname,
+                        "dName": sessionStorage.dName,
                         "msg": cleanTxt
                     };
                     socket.emit('msg', JSONmsg);

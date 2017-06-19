@@ -52,7 +52,7 @@
     socket.on('userJSON', function (msg) {
       //Set session storage
       sessionStorage.setItem('id', msg._id);
-      sessionStorage.setItem('dname', msg.dname);
+      sessionStorage.setItem('dName', msg.dName);
       sessionStorage.setItem('email', msg.email);
       //moves user to the landing page
       window.location.href = 'landing.html';
