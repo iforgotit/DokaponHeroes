@@ -137,13 +137,12 @@
             });
 
             socket.on('attendance', function () {
-                var userString = "";
+
                 if (getSeletedClass() !== undefined) {
-                    userString = sessionStorage.dname + " - " + selectedClass;
+                    socket.emit('checkin', sessionStorage.dname, getSeletedClass());
                 } else {
-                    userString = sessionStorage.dname;
+                    socket.emit('checkin', sessionStorage.dname, false);
                 }
-                socket.emit('checkin', userString);
                 var userlist = document.getElementById("ulUsers");
                 while (userlist.hasChildNodes()) {
                     userlist.removeChild(userlist.lastChild);
@@ -176,6 +175,7 @@
                 if (getSeletedClass() !== undefined) {
                     var pJSON = {
                         "gID": gameData._id,
+                        "size": gameData.size,
                         "pID": sessionStorage.id,
                         "dName": sessionStorage.dname,
                         "pClass": getSeletedClass()
@@ -267,7 +267,8 @@
             function startGame() {
                 document.getElementById("btnStartGame").classList.add('disabled');
                 document.getElementById("btnStartGame").disabled = true;
-                socket.emit('startGame');
+                let playerCount =document.getElementById("pC");
+                socket.emit('startGame', playerCount);
             }
 
             function setSelectedClass(sltClass) {

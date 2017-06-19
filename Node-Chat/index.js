@@ -74,7 +74,7 @@ io.on('connection', function (socket) {
     bcrypt.hash(user.password, 10, function (err, hash) {
       collection.insert({
         'email': user.email,
-        'dname': user.dname,
+        'dName': user.dName,
         'password': hash
       }, function (err, result) {
         assert.equal(err, null);
@@ -107,7 +107,7 @@ io.on('connection', function (socket) {
           if (bcrypt.compareSync(iUser.password, user[0].password)) {
             userJSON = {
               '_id': user[0]._id,
-              'dname': user[0].dname,
+              'dName': user[0].dName,
               'email': user[0].email
             }
             socket.emit('userJSON', userJSON);
@@ -126,8 +126,8 @@ io.on('connection', function (socket) {
     io.emit('attendance');
   });
 
-  socket.on('checkin', function (dname) {
-    io.emit('buildUser', dname);
+  socket.on('checkin', function (dName) {
+    io.emit('buildUser', dName);
   });
 
   socket.on('disconnect', function () {
@@ -141,6 +141,7 @@ io.on('connection', function (socket) {
 
 //opens lobby namespace
 var lobbynsp = io.of('/lobby');
+var roleSelected = new Object();
 
 lobbynsp.on('connection', function (socket) {
 
@@ -153,12 +154,21 @@ lobbynsp.on('connection', function (socket) {
     lobbynsp.emit('attendance');
   });
 
-  socket.on('checkin', function (dname) {
-    lobbynsp.emit('buildUser', dname);
+  socket.on('checkin', function (dName, role) {
+    var userString = "";
+    if (role != false) {
+      userString = dName + " - " + role;
+      lobbynsp.emit('buildUser', userString);
+      roleSelected[socket.id] = true;
+    } else {
+      lobbynsp.emit('buildUser', dName);
+      roleSelected[socket.id] = false;
+    }
   });
 
   socket.on('disconnect', function () {
     lobbynsp.emit('attendance');
+    delete roleSelected[socket.id];
     numUsersLobby--;
     clearInterval(t);
     if (numUsersLobby == 0) {
@@ -180,25 +190,25 @@ lobbynsp.on('connection', function (socket) {
     switch (pJSON.pClass) {
       case "Magii":
         pJSON.hp = 20;
-        pJSON.might = 1;
+        pJSON.strength = 1;
         pJSON.magic = 3;
         pJSON.cunning = 1;
         break;
       case "Warrior":
         pJSON.hp = 20;
-        pJSON.might = 3;
+        pJSON.strength = 3;
         pJSON.magic = 1;
         pJSON.cunning = 1;
         break;
       case "Rogue":
         pJSON.hp = 20;
-        pJSON.might = 2;
+        pJSON.strength = 2;
         pJSON.magic = 2;
         pJSON.cunning = 2;
         break;
       default:
         pJSON.hp = 0;
-        pJSON.might = 0;
+        pJSON.strength = 0;
         pJSON.magic = 0;
         pJSON.cunning = 0;
     }
@@ -223,14 +233,13 @@ lobbynsp.on('connection', function (socket) {
               dName: pJSON.dName,
               pClass: pJSON.pClass,
               "hp": pJSON.hp,
-              "might": pJSON.might,
+              "strength": pJSON.strength,
               "magic": pJSON.magic,
               "cunning": pJSON.cunning,
-              x: (Math.floor((Math.random() * 4))),
-              y: (Math.floor((Math.random() * 4))),
+              x: (Math.floor((Math.random() * pJSON.size))),
+              y: (Math.floor((Math.random() * pJSON.size))),
               loaded: false
             }
-
           }
         },
         function (err, result) {
@@ -255,16 +264,27 @@ lobbynsp.on('connection', function (socket) {
     });
 
     var createGame = function (db, callback) {
+      var playerCount = 0;
+      for (let i = 0; i < (Object.keys(roleSelected).length); i++) {
+        var r = Object.keys(roleSelected)[i];
+        let rS = roleSelected[r];
+        if (rS != false) {
+          playerCount++;
+        }
+      }
+      var gridSize = Math.ceil(Math.sqrt(playerCount * 6));
       // Get the game collection
       var collection = db.collection('game');
       // Insert new game
       collection.insert({
-        'startTime': Date.now()
+        'startTime': Date.now(),
+        'size': gridSize
       }, function (err, result) {
         assert.equal(err, null);
         gameData = {
           '_id': result.ops[0]._id,
-          'startTime': result.ops[0].startTime
+          'startTime': result.ops[0].startTime,
+          'size': result.ops[0].size
         }
         lobbynsp.emit('gameID', gameData);
         callback(gameData);
@@ -361,59 +381,151 @@ function gameThread(gameData) {
       }
     }
 
-    function turnTime() {
+    function findPlayerInit(value) {
+      for (let i = 0; i < players.length; i++) {
+        if (players[i].pID == value) {
+          if (players[i].initative) {
+            return players[i].initative;
+          } else {
+            return 1;
+          }
 
-      if (c < 0) {
+        }
+      }
+    }
+
+    function updatePlayerMoves(moveTurn) {
+      for (let i = 0; i <= (moveTurn.length - 1); i++) {
+        players[findPlayer(moveTurn[i].playerID)].x = moveTurn[i].target.x;
+        players[findPlayer(moveTurn[i].playerID)].y = moveTurn[i].target.y;
+      }
+      ingame.in(gameData._id).emit('move', moveTurn);
+    }
+
+
+    function checkForCombat() {
+      for (let n = 0; n <= (players.length - 1); n++) {
+        let pX = players[n];
+        let pXID = players[n].pID;
+        pX.inCombat = new Array();
+        for (let i = 0; i <= (players.length - 1); i++) {
+          if (i != n) {
+            let pY = players[i];
+            let pYID = players[i].pID;
+            if (pX.x == pY.x && pX.y == pY.y) {
+              let advs = players[findPlayer(pYID)];
+              let advsData = {
+                'pID': advs.pID,
+                'dName': advs.dName,
+                'hp': advs.hp,
+                'strength': advs.strength,
+                'magic': advs.magic,
+                'cunning': advs.cunning
+              }
+              pX.inCombat.push(advsData);
+            };
+          };
+        };
+        if (pX.inCombat) {
+          pX.initative = Math.random() + pX.cunning;
+        }
+      };
+    }
+
+    function determineOrder(pData, aData) {
+      let cArray = new Array();
+
+      cArray.push({
+        'pID': pData.pID,
+        'init': findPlayerInit(pData.pID)
+      })
+
+      for (let i = 0; i <= (aData.length - 1); i++) {
+        cArray.push({
+          'pID': aData[i].pID,
+          'init': findPlayerInit(aData[i].pID)
+        })
+      }
+
+      var sortedCArray = cArray.sort(function (a, b) {
+        return parseFloat(b.init) - parseFloat(a.init);
+      });
+
+      return sortedCArray.findIndex(f => f.pID === pData.pID);
+    }
+
+    function turnTime() {
+      if (c <= 0) {
         MongoClient.connect(url, function (err, db) {
           assert.equal(null, err);
 
           getTurn(db, function (turnDB) {
             db.close();
             turnCount++;
-            ingame.in(gameData._id).emit('endTurn', turnDB, turnCount);
-
             if (turnDB.length != 0) {
+              let moveARAY = new Array();
+
               for (let i = 0; i <= (turnDB.length - 1); i++) {
                 switch (turnDB[i].actionType) {
                   case "move":
-                    players[findPlayer(turnDB[i].playerID)].x = turnDB[i].target.x;
-                    players[findPlayer(turnDB[i].playerID)].y = turnDB[i].target.y;
+                    moveARAY.push({
+                      'playerID': turnDB[i].playerID,
+                      'stageX': turnDB[i].stageX,
+                      'target': turnDB[i].target
+                    });
+                    break;
+                  case "attack":
+                  case "defend":
+                    console.log(JSON.stringify(turnDB[i]));
                     break;
                   default:
                     break;
                 }
-
-
-                // for (let i = 0; i <= (turnDB.length - 1); i++) {
-
-                //   switch (turnDB[i].actionType) {
-                //     case "move":
-                //       movePlayer(endTurnData[i]);
-                //       if (endTurnData[i].playerID == sessionStorage.id) {
-                //         availableGrids(endTurnData[i].target);
-                //       };
-                //       break;
-                //     case "init":
-                //       if (endTurnData[i].playerID == sessionStorage.id) {
-                //         availableGrids(playerLocation[sessionStorage.id]);
-                //       };
-                //       break;
-                //     default:
-                //       break;
-                //  }
-                //}
               }
-            }
 
-            if (turnDB.length == 0) {
+              if (moveARAY.length != 0) {
+                updatePlayerMoves(moveARAY);
+              }
+
+              checkForCombat();
+              inactive = 0;
+            } else {
               inactive++;
               if (inactive > 3) {
                 clearInterval(t);
                 ingame.in(gameData._id).emit('gameTime', 'GAME OVER!');
               }
-            } else {
-              inactive = 0;
             }
+            let gridData = new Array();
+
+            for (let i = 0; i <= (players.length - 1); i++) {
+              let t1 = players[i];
+              let t2;
+
+              t2 = {
+                'x': t1.x,
+                'y': t1.y
+              }
+
+              var order = (determineOrder(t1, t1.inCombat) + 1);
+
+              gridData.push({
+                'playerID': t1.pID,
+                'dName': t1.dName,
+                'hp': t1.hp,
+                'strength': t1.strength,
+                'magic': t1.magic,
+                'cunning': t1.cunning,
+                'target': t2,
+                'order': order,
+                'inCombat': t1.inCombat
+              });
+
+              if (t1.inCombat != 0) {
+                ingame.in(gameData._id).emit('brawlin', t1.pID, t2);
+              }
+            }
+            ingame.in(gameData._id).emit('setTurn', turnCount, gridData);
             c = 16;
           });
         });
@@ -424,6 +536,7 @@ function gameThread(gameData) {
       }
       c--;
     }
+
     var getTurn = function (db, callback) {
       // Get the turn collection
       var collection = db.collection('turn');
@@ -437,8 +550,8 @@ function gameThread(gameData) {
       });
     }
   }
-
 }
+
 
 ingame.on('connection', function (socket) {
 
@@ -476,7 +589,7 @@ ingame.on('connection', function (socket) {
             _id: ObjectId(iGameID),
             "players.pID": iPID
           }, {
-            startTime: 1
+            size: 1
           }, {
             "$set": {
               "players.$.loaded": true
@@ -486,10 +599,8 @@ ingame.on('connection', function (socket) {
             assert.equal(err, null);
             if (result) {
               var game = result.value;
-              var gridSize = game.players.length;
-              gridSize = Math.ceil(Math.sqrt(gridSize * 6));
               var gameJSON = {
-                "size": gridSize,
+                "size": game.size,
                 "players": game.players
               }
               socket.emit('gameJSON', gameJSON)
