@@ -631,7 +631,7 @@ ingame.on('connection', function (socket) {
     var collection = db.collection('turn');
     // Update turn with most recent data
     collection.update({
-        gameID: ObjectId(getGameID()),
+        gameID: getGameID(),
         turn: turnEvent.turn,
         playerID: turnEvent.playerID
       }, turnEvent, {
