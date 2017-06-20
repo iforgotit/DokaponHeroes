@@ -74,7 +74,7 @@ io.on('connection', function (socket) {
     bcrypt.hash(user.password, 10, function (err, hash) {
       collection.insert({
         'email': user.email,
-        'dName': user.dName,
+        'dname': user.dName,
         'password': hash
       }, function (err, result) {
         assert.equal(err, null);
@@ -107,7 +107,7 @@ io.on('connection', function (socket) {
           if (bcrypt.compareSync(iUser.password, user[0].password)) {
             userJSON = {
               '_id': user[0]._id,
-              'dName': user[0].dName,
+              'dName': user[0].dname,
               'email': user[0].email
             }
             socket.emit('userJSON', userJSON);
