@@ -66,11 +66,11 @@
       document.getElementById("z").hidden = true;
 
       var email = document.getElementById("txtEmail");
-      var dname = document.getElementById("txtDname");
+      var dName = document.getElementById("txtDname");
       var password = document.getElementById("txtPassword");
       var confirmPW = document.getElementById("txtConfirmPW");
 
-      if (!email.validity.valid || !dname.validity.valid || !password.validity.valid || password.value != confirmPW.value) {
+      if (!email.validity.valid || !dName.validity.valid || !password.validity.valid || password.value != confirmPW.value) {
         document.getElementById("z").hidden = false;
         document.getElementById("z").innerHTML =
           '<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span><br>';
@@ -80,10 +80,10 @@
             "Invalid E-mail Address <br>";
           email.classList.add('has-error');
         }
-        if (!dname.validity.valid) {
+        if (!dName.validity.valid) {
           document.getElementById("z").innerHTML = document.getElementById("z").innerHTML +
             "Display Name must be between 3 and 25 characters <br>";
-          dname.classList.add('has-error');
+          dName.classList.add('has-error');
         }
         if (!password.validity.valid) {
           document.getElementById("z").innerHTML = document.getElementById("z").innerHTML +
@@ -102,7 +102,7 @@
         //grabs the email and display name field vales and puts them in an object
         var JSONuser = {
           "email": email.value.toLowerCase(),
-          "dname": dname.value,
+          "dName": dName.value,
           "password": password.value
         }
         //sends the object to the server
