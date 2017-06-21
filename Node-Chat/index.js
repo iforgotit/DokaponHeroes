@@ -213,6 +213,10 @@ lobbynsp.on('connection', function (socket) {
         pJSON.cunning = 0;
     }
 
+    pJSON.attackActions = ["Reckless Attack", "Defensive Attack", "Magic Missile", "Retreat"];
+
+    pJSON.defenseActions = ["Counter Attack", "Block", "Resist", "Focus"];
+
     MongoClient.connect(url, function (err, db) {
       assert.equal(null, err);
       addPlayer(db, pJSON, function () {
@@ -236,6 +240,10 @@ lobbynsp.on('connection', function (socket) {
               "strength": pJSON.strength,
               "magic": pJSON.magic,
               "cunning": pJSON.cunning,
+              "attackActions": pJSON.attackActions,
+              "defenseActions": pJSON.defenseActions,
+              "focusDecay": [],
+              "isDead": false,
               x: (Math.floor((Math.random() * pJSON.size))),
               y: (Math.floor((Math.random() * pJSON.size))),
               loaded: false
@@ -396,38 +404,162 @@ function gameThread(gameData) {
 
     function updatePlayerMoves(moveTurn) {
       for (let i = 0; i <= (moveTurn.length - 1); i++) {
-        players[findPlayer(moveTurn[i].playerID)].x = moveTurn[i].target.x;
-        players[findPlayer(moveTurn[i].playerID)].y = moveTurn[i].target.y;
+        let player = players[findPlayer(moveTurn[i].playerID)];
+        player.x = moveTurn[i].target.x;
+        player.y = moveTurn[i].target.y;
       }
       ingame.in(gameData._id).emit('move', moveTurn);
     }
 
+    function setDefense(iDefense) {
+      for (let i = 0; i <= (players.length - 1); i++) {
+        for (let j = 0; j <= (iDefense.length - 1); j++) {
+          if (players[i].pID == iDefense[j].playerID) {
+            if (iDefense[j].defense != undefined) {
+              players[i].defense = players[i].defenseActions[iDefense[j].defense];
+              if (players[i].defense == "Focus") {
+                let focusPower = players[i].magic;
+
+                players[i].focusDecay[turnCount + 3] = focusPower;
+
+                players[i].strength += focusPower;
+                players[i].magic += focusPower;
+                players[i].cunning += focusPower;
+              }
+            } else {
+              players[i].defense = undefined;
+            }
+          } else {
+            players[i].defense = undefined;
+          }
+        }
+      }
+    }
+
+    function performAttack(attackARAY) {
+      let i = 0;
+
+      var fightT = setInterval(singleCombat, 1000)
+
+      function singleCombat() {
+        c++;
+        let playerIndex = findPlayer(attackARAY[i].playerID)
+        let player = players[playerIndex];
+        let advsIndex = findPlayer(attackARAY[i].advs)
+        let advs = players[advsIndex];
+
+        let playerAttack = player.attackActions[attackARAY[i].attackAction];
+        let advsDefense = advs.defense;
+        let combat;
+        let damage;
+        let dodge = advs.cunning - player.cunning;
+
+        if (dodge < 0) {
+          dodge = 0
+        } else {
+          dodge = ((dodge * 5) + 5);
+        }
+        let hitchance = Math.floor((Math.random() * 100) + 1);
+
+        if (player.isDead == false && advs.isDead == false) {
+          switch (playerAttack) {
+            case "Reckless Attack":
+              damage = player.strength * 3;
+              dodge = dodge * 1.2;
+              if (advs.defense == "Counter Attack") {
+                combat = "OMG you just played yourself! " + advs.dName + " does " + damage + " to " + player.dName;
+                players[playerIndex].hp -= damage;
+              } else {
+                if (hitchance > dodge) {
+                  if (advs.defense == "Block") {
+                    damage = damage / 1.6;
+                  }
+                  damage = Math.ceil(damage);
+                  combat = player.dName + "'s " + playerAttack + " does " + damage + " to " + advs.dName;
+                  players[advsIndex].hp -= damage;
+                } else {
+                  combat = advs.dName + " put on his juke shoes and dodged " + player.dName + "'s attack";
+                }
+              }
+              break;
+            case "Defensive Attack":
+              damage = player.strength;
+              if (hitchance > dodge) {
+                if (advs.defense == "Block") {
+                  damage = damage / 2;
+                }
+                damage = Math.ceil(damage);
+                combat = player.dName + "'s " + playerAttack + " does " + damage + " to " + advs.dName;
+                players[advsIndex].hp -= damage;
+              } else {
+                combat = advs.dName + " put on his juke shoes and dodged " + player.dName + "'s attack";
+              }
+              break;
+            case "Magic Missile":
+              damage = player.magic * 2;
+              if (advs.defense == "Resist") {
+                damage = damage / 2;
+              }
+              damage = Math.ceil(damage);
+              combat = player.dName + "'s " + playerAttack + " does " + damage + " to " + advs.dName;
+              players[advsIndex].hp -= damage;
+              break;
+            case "Retreat":
+              combat = player.dName + " runs away";
+              break;
+            default:
+              combat = "Something went wrong idk"
+              break;
+          }
+          ingame.in(gameData._id).emit('attack', combat);
+          if (players[playerIndex].hp <= 0) {
+            dead(playerIndex);
+          }
+          if (players[advsIndex].hp <= 0) {
+            dead(advsIndex);
+          }
+        }
+        i++;
+        if (i >= (attackARAY.length)) {
+          clearInterval(fightT);
+        }
+      }
+    }
+
+    function dead(playerIndex) {
+      players[playerIndex].isDead = true;
+      let rip = players[playerIndex].dName + " is no longer with us";
+      ingame.in(gameData._id).emit('attack', rip);
+      players[playerIndex].inCombat = [];
+    }
 
     function checkForCombat() {
       for (let n = 0; n <= (players.length - 1); n++) {
         let pX = players[n];
         let pXID = players[n].pID;
+
+        if (pX.focusDecay[turnCount] != undefined) {
+          players[n].strength -= pX.focusDecay[turnCount];
+          players[n].magic -= pX.focusDecay[turnCount];
+          players[n].cunning -= pX.focusDecay[turnCount];
+        }
+
         pX.inCombat = new Array();
-        for (let i = 0; i <= (players.length - 1); i++) {
-          if (i != n) {
-            let pY = players[i];
-            let pYID = players[i].pID;
-            if (pX.x == pY.x && pX.y == pY.y) {
-              let advs = players[findPlayer(pYID)];
-              let advsData = {
-                'pID': advs.pID,
-                'dName': advs.dName,
-                'hp': advs.hp,
-                'strength': advs.strength,
-                'magic': advs.magic,
-                'cunning': advs.cunning
+        if (pX.isDead == false) {
+          for (let i = 0; i <= (players.length - 1); i++) {
+            if (i != n) {
+              let pY = players[i];
+              let pYID = players[i].pID;
+              if (pY.isDead == false) {
+                if (pX.x == pY.x && pX.y == pY.y) {
+                  pX.inCombat.push(pYID);
+                };
               }
-              pX.inCombat.push(advsData);
             };
           };
-        };
-        if (pX.inCombat) {
-          pX.initative = Math.random() + pX.cunning;
+          if (pX.inCombat) {
+            pX.initative = Math.random() + pX.cunning;
+          }
         }
       };
     }
@@ -454,8 +586,50 @@ function gameThread(gameData) {
       return sortedCArray.findIndex(f => f.pID === pData.pID);
     }
 
+    function stringifyNumber(n) {
+      var special = ['Zeroth', 'First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth', 'Seventh', 'Eighth', 'Ninth', 'Tenth', 'Eleventh', 'Twelvth', 'Thirteenth', 'Fourteenth', 'Fifteenth', 'Sixteenth', 'Seventeenth', 'Eighteenth', 'Nineteenth'];
+      var deca = ['Twent', 'Thirt', 'Fourt', 'Fift', 'Sixt', 'Sevent', 'Eight', 'Ninet'];
+      if (n < 20) return special[n];
+      if (n % 10 === 0) return deca[Math.floor(n / 10) - 2] + 'ieth';
+      return deca[Math.floor(n / 10) - 2] + 'y-' + special[n % 10];
+    }
+
+    function gameStateSave(turnCount) {
+      let gameState = new Object();
+
+      gameState.turnCount = turnCount;
+      gameState.players = players;
+      // Use connect method to connect to the server
+      MongoClient.connect(url, function (err, db) {
+        assert.equal(null, err);
+        saveGameState(db, gameState, function () {
+          db.close();
+        });
+      });
+    };
+
+    var saveGameState = function (db, gameState, callback) {
+      // Get the game collection
+      var collection = db.collection('game');
+      // Update game with players passing roleClass
+      collection.update({
+          _id: ObjectId(getGameID())
+        }, {
+          $push: {
+            gameState
+          }
+        },
+        function (err, result) {
+          assert.equal(err, null);
+          callback();
+        });
+    }
+
+
     function turnTime() {
-      if (c <= 0) {
+      if (c < 0) {
+        c = 16;
+
         MongoClient.connect(url, function (err, db) {
           assert.equal(null, err);
 
@@ -464,6 +638,8 @@ function gameThread(gameData) {
             turnCount++;
             if (turnDB.length != 0) {
               let moveARAY = new Array();
+              let attackARAY = new Array();
+              let defendARAY = new Array();
 
               for (let i = 0; i <= (turnDB.length - 1); i++) {
                 switch (turnDB[i].actionType) {
@@ -475,12 +651,27 @@ function gameThread(gameData) {
                     });
                     break;
                   case "attack":
+                    attackARAY.push({
+                      'playerID': turnDB[i].playerID,
+                      'attackAction': turnDB[i].aAction,
+                      'advs': turnDB[i].advsID
+                    });
+                    break;
                   case "defend":
-                    console.log(JSON.stringify(turnDB[i]));
+                    defendARAY.push({
+                      'playerID': turnDB[i].playerID,
+                      'defense': turnDB[i].dAction
+                    });
                     break;
                   default:
                     break;
                 }
+              }
+
+              setDefense(defendARAY);
+
+              if (attackARAY.length != 0) {
+                performAttack(attackARAY);
               }
 
               if (moveARAY.length != 0) {
@@ -489,48 +680,76 @@ function gameThread(gameData) {
 
               checkForCombat();
               inactive = 0;
+
             } else {
               inactive++;
               if (inactive > 3) {
                 clearInterval(t);
                 ingame.in(gameData._id).emit('gameTime', 'GAME OVER!');
+                ingame.in(gameData._id).emit('result', 'Draw!');
               }
             }
-            let gridData = new Array();
-
-            for (let i = 0; i <= (players.length - 1); i++) {
-              let t1 = players[i];
-              let t2;
-
-              t2 = {
-                'x': t1.x,
-                'y': t1.y
-              }
-
-              var order = (determineOrder(t1, t1.inCombat) + 1);
-
-              gridData.push({
-                'playerID': t1.pID,
-                'dName': t1.dName,
-                'hp': t1.hp,
-                'strength': t1.strength,
-                'magic': t1.magic,
-                'cunning': t1.cunning,
-                'target': t2,
-                'order': order,
-                'inCombat': t1.inCombat
-              });
-
-              if (t1.inCombat != 0) {
-                ingame.in(gameData._id).emit('brawlin', t1.pID, t2);
-              }
-            }
-            ingame.in(gameData._id).emit('setTurn', turnCount, gridData);
-            c = 16;
+            gameStateSave(turnCount);
           });
         });
+
       } else if (c > 15) {
         ingame.in(gameData._id).emit('gameTime', 'Taking turn now');
+      } else if (c == 15) {
+        ingame.in(gameData._id).emit('gameTime', c);
+
+        let gridData = new Array();
+
+        for (let i = 0; i <= (players.length - 1); i++) {
+          let t1 = players[i];
+          let t2;
+
+          t2 = {
+            'x': t1.x,
+            'y': t1.y
+          }
+
+          var order = (determineOrder(t1, t1.inCombat) + 1);
+          cardOrder = stringifyNumber(order);
+
+          t1.order = order;
+
+          let combatin = new Array();
+
+          for (let a = 0; a <= (t1.inCombat.length - 1); a++) {
+            let advs = players[findPlayer(t1.inCombat[a])];
+            let advsData = {
+              'pID': advs.pID,
+              'dName': advs.dName,
+              'hp': advs.hp,
+              'strength': advs.strength,
+              'magic': advs.magic,
+              'cunning': advs.cunning
+            }
+            combatin.push(advsData);
+          }
+
+
+
+          gridData.push({
+            'playerID': t1.pID,
+            'dName': t1.dName,
+            'hp': t1.hp,
+            'strength': t1.strength,
+            'magic': t1.magic,
+            'cunning': t1.cunning,
+            'target': t2,
+            'order': order,
+            'cardinal': cardOrder,
+            'inCombat': combatin,
+            'isDead': t1.isDead
+          });
+
+          if (t1.inCombat != 0) {
+            ingame.in(gameData._id).emit('brawlin', t1.pID, t2);
+          }
+        }
+        ingame.in(gameData._id).emit('setTurn', turnCount, gridData);
       } else {
         ingame.in(gameData._id).emit('gameTime', c);
       }
@@ -620,20 +839,21 @@ ingame.on('connection', function (socket) {
     // Use connect method to connect to the server
     MongoClient.connect(url, function (err, db) {
       assert.equal(null, err);
-      updateGameWithTurn(db, turnEvent, function () {
+      addPlayerTurn(db, turnEvent, function () {
         db.close();
       });
     });
   });
 
-  var updateGameWithTurn = function (db, turnEvent, callback) {
+  var addPlayerTurn = function (db, turnEvent, callback) {
     // Get the turn collection
     var collection = db.collection('turn');
     // Update turn with most recent data
     collection.update({
-        gameID: getGameID(),
-        turn: turnEvent.turn,
-        playerID: turnEvent.playerID
+        'gameID': turnEvent.gameID,
+        'turn': turnEvent.turn,
+        'playerID': turnEvent.playerID,
+        'actionType': turnEvent.actionType
       }, turnEvent, {
         upsert: true
       },

@@ -19,7 +19,7 @@ var findDocuments = function(db, callback) {
   // Get the documents collection
   var collection = db.collection('game');
   // Find some documents
-  collection.find(ObjectId("5946aba0087494115886e836")).toArray(function(err, docs) {
+  collection.find(ObjectId("594996d31ef50411549f7b76")).toArray(function(err, docs) {
     assert.equal(err, null);
     console.log("Found the following records");
     console.log(JSON.stringify(docs));

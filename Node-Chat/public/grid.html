@@ -331,25 +331,39 @@
         }
 
         function handleDefendEvent(dAction) {
-            var turnJSON = {
+            let y = document.getElementById("mdlDefend");
+            let x = y.getElementsByTagName("button");
+
+            for (let i = 0; i <= x.length - 1; i++) {
+                x[i].disabled = "disabled";
+                //x[i].classList.add('disabled');
+            }
+
+            let turnJSON = {
                 "playerID": sessionStorage.id,
                 "actionType": "defend",
                 "turn": turnCount,
                 "dAction": dAction
             }
-            //document.getElementById("x").innerHTML = JSON.stringify(turnJSON);
             socket.emit('turnData', turnJSON);
         }
 
         function handleAttackEvent(aAction, aID) {
-            var turnJSON = {
+            let y = document.getElementById("mdlAttack");
+            let x = y.getElementsByTagName("button");
+
+            for (let i = 0; i <= x.length - 1; i++) {
+                x[i].disabled = "disabled";
+                x[i].classList.add('disabled');
+            }
+
+            let turnJSON = {
                 "playerID": sessionStorage.id,
                 "actionType": "attack",
                 "turn": turnCount,
                 "advsID": aID,
                 "aAction": aAction
             }
-            //document.getElementById("z").innerHTML = JSON.stringify(turnJSON);
             socket.emit('turnData', turnJSON);
         }
 
@@ -456,22 +470,22 @@
 
             aLbl.innerHTML = "<h3>" + advs.dName + "</h3>HP:" + advs.hp + "<br>Strength:" + advs.strength +
                 "<br>Magic:" + advs.magic + "<br>Cunning:" + advs.cunning;
-            a1.innerHTML = "Powerful Attack";
+            a1.innerHTML = "Reckless Attack";
             a2.innerHTML = "Defensive Attack";
             a3.innerHTML = "Magic Missile";
             a4.innerHTML = "Retreat";
 
             a1.onclick = function () {
-                handleAttackEvent("a1", advs.pID);
+                handleAttackEvent(0, advs.pID);
             };
             a2.onclick = function () {
-                handleAttackEvent("a2", advs.pID);
+                handleAttackEvent(1, advs.pID);
             };
             a3.onclick = function () {
-                handleAttackEvent("a3", advs.pID);
+                handleAttackEvent(2, advs.pID);
             };
             a4.onclick = function () {
-                handleAttackEvent("a4", advs.pID);
+                handleAttackEvent(3, advs.pID);
             };
 
             attackCol.appendChild(aLbl);
@@ -504,7 +518,7 @@
             d3.className = "btn-block btn-primary";
             d4.className = "btn-block btn-primary";
 
-            dLbl.innerHTML = "<h3>Defensive Action</h3>Order:" + p.order + "<br>HP:" + p.hp + "<br>Strength:" + p.strength +
+            dLbl.innerHTML = "<h3>Defensive Action</h3>" + p.cardinal + "<br>HP:" + p.hp + "<br>Strength:" + p.strength +
                 "<br>Magic:" + p.magic + "<br>Cunning:" + p.cunning;
             d1.innerHTML = "Counter Attack";
             d2.innerHTML = "Block";
@@ -512,16 +526,16 @@
             d4.innerHTML = "Focus";
 
             d1.onclick = function () {
-                handleDefendEvent("a1");
+                handleDefendEvent(0);
             };
             d2.onclick = function () {
-                handleDefendEvent("a2");
+                handleDefendEvent(1);
             };
             d3.onclick = function () {
-                handleDefendEvent("a3");
+                handleDefendEvent(2);
             };
             d4.onclick = function () {
-                handleDefendEvent("a4");
+                handleDefendEvent(3);
             };
 
             defendPanel.appendChild(dLbl);
@@ -532,7 +546,11 @@
 
         }
 
-        socket.on("brawlin", function(pX, target) {
+        socket.on("attack", function (combat) {
+            document.getElementById("z").innerHTML += combat + "<br>";
+        });
+
+        socket.on("brawlin", function (pX, target) {
             if (!stage.getChildByName("b" + pX)) {
                 var brawlSprite = queue.getResult("brawlData");
                 let eachHero = stage.getChildByName(pX);
@@ -547,6 +565,9 @@
                 brawl.name = "b" + pX;
                 stage.addChild(brawl);
             }
+            if (pX == sessionStorage.id) {
+                mOpen();
+            }
         });
 
         socket.on("move", function (moveData) {
@@ -556,7 +577,6 @@
         });
 
         socket.on("setTurn", function (iTurnCount, grid) {
-            mClose();
             document.getElementById("mdlAttack").innerHTML = "";
 
             turnCount = iTurnCount;
@@ -566,7 +586,9 @@
             var row = x.insertRow(0);
 
             for (let i = 0; i <= (grid.length - 1); i++) {
+                let cell = row.insertCell(i);
                 if (grid[i].playerID == sessionStorage.id) {
+                    cell.style.color = "#ffa500";
                     if (grid[i].inCombat.length == 0) {
                         availableGrids(grid[i].target);
                     } else {
@@ -577,14 +599,17 @@
                             setAttack(advs[i]);
                         };
                         setDefend(grid[i]);
-                        mOpen();
+                    }
+                    if (grid[i].isDead == true) {
+                        disableGrids();
                     }
                 };
-                let cell = row.insertCell(i);
-                if (grid[i].playerID == sessionStorage.id) {
-                    cell.style.color = "#ffa500";
+                if (grid[i].isDead == true) {
+                    cell.innerHTML = grid[i].dName + "<br>Dead";
+                } else {
+                    cell.innerHTML = grid[i].dName + "<br>" + grid[i].hp;
                 }
-                cell.innerHTML = grid[i].dName + "<br>" + grid[i].hp;
+
             };
         });
 
@@ -594,6 +619,24 @@
 
         socket.on('gameTime', function (time) {
             document.getElementById("time").innerHTML = time;
+            if (time === 0) {
+                mClose();
+            }
+        });
+
+        socket.on('result', function (strResult) {
+            let text = new createjs.Text(strResult, "bold 86px Arial", "#ff7700");
+            text.x = 100;
+            text.y = 0;
+
+            stage.addChild(text);
+
+            createjs.Tween.get(text, {
+                    loop: false
+                })
+                .to({
+                    y: 200
+                }, 2000, createjs.Ease.getPowInOut(4));
         });
     </script>
 </body>
