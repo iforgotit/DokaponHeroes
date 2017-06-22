@@ -551,23 +551,23 @@
         });
 
         socket.on("brawlin", function (pX, target) {
-            if (!stage.getChildByName("b" + pX)) {
-                var brawlSprite = queue.getResult("brawlData");
-                let eachHero = stage.getChildByName(pX);
-                let eachNameplate = stage.getChildByName("n" + pX);
-                let brawl = new createjs.Sprite(brawlSprite, "fight");
+            // if (!stage.getChildByName("b" + pX)) {
+            //     var brawlSprite = queue.getResult("brawlData");
+            //     let eachHero = stage.getChildByName(pX);
+            //     let eachNameplate = stage.getChildByName("n" + pX);
+            //     let brawl = new createjs.Sprite(brawlSprite, "fight");
 
-                eachHero.alpha = 0;
-                eachNameplate.alpha = 0;
+            //     eachHero.alpha = 0;
+            //     eachNameplate.alpha = 0;
 
-                brawl.x = (target.x * 100) - 10;
-                brawl.y = (target.y * 100) - 6;
-                brawl.name = "b" + pX;
-                stage.addChild(brawl);
-            }
-            if (pX == sessionStorage.id) {
-                mOpen();
-            }
+            //     brawl.x = (target.x * 100) - 10;
+            //     brawl.y = (target.y * 100) - 6;
+            //     brawl.name = "b" + pX;
+            //     stage.addChild(brawl);
+            // }
+            // if (pX == sessionStorage.id) {
+            //     mOpen();
+            // }
         });
 
         socket.on("move", function (moveData) {
@@ -584,32 +584,52 @@
             var x = document.getElementById("y");
             x.deleteRow(0);
             var row = x.insertRow(0);
+            
 
             for (let i = 0; i <= (grid.length - 1); i++) {
+                let pX = grid[i];
                 let cell = row.insertCell(i);
-                if (grid[i].playerID == sessionStorage.id) {
+                if (pX.playerID == sessionStorage.id) {
                     cell.style.color = "#ffa500";
-                    if (grid[i].inCombat.length == 0) {
-                        availableGrids(grid[i].target);
+                    if (pX.inCombat.length == 0) {
+                        availableGrids(pX.target);
                     } else {
-                        let advs = grid[i].inCombat;
+                        let advs = pX.inCombat;
 
                         disableGrids();
                         for (let i = 0; i <= (advs.length - 1); i++) {
                             setAttack(advs[i]);
                         };
-                        setDefend(grid[i]);
+                        setDefend(pX);
                     }
-                    if (grid[i].isDead == true) {
+                    if (pX.isDead == true) {
                         disableGrids();
                     }
                 };
-                if (grid[i].isDead == true) {
-                    cell.innerHTML = grid[i].dName + "<br>Dead";
+                if (pX.isDead == true) {
+                    cell.innerHTML = pX.dName + "<br>Dead";
                 } else {
-                    cell.innerHTML = grid[i].dName + "<br>" + grid[i].hp;
+                    cell.innerHTML = pX.dName + "<br>" + pX.hp;
                 }
+                if (pX.inCombat != 0) {
+                    if (!stage.getChildByName("b" + pX.playerID)) {
+                        var brawlSprite = queue.getResult("brawlData");
+                        let eachHero = stage.getChildByName(pX.playerID);
+                        let eachNameplate = stage.getChildByName("n" + pX.playerID);
+                        let brawl = new createjs.Sprite(brawlSprite, "fight");
 
+                        eachHero.alpha = 0;
+                        eachNameplate.alpha = 0;
+
+                        brawl.x = (pX.target.x * 100) - 10;
+                        brawl.y = (pX.target.y * 100) - 6;
+                        brawl.name = "b" + pX.playerID;
+                        stage.addChild(brawl);
+                    }
+                    if (pX.playerID == sessionStorage.id) {
+                        mOpen();
+                    }
+                }
             };
         });
 

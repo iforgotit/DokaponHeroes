@@ -574,8 +574,8 @@ function gameThread(gameData) {
 
       for (let i = 0; i <= (aData.length - 1); i++) {
         cArray.push({
-          'pID': aData[i].pID,
-          'init': findPlayerInit(aData[i].pID)
+          'pID': aData[i],
+          'init': findPlayerInit(aData[i])
         })
       }
 
@@ -728,8 +728,6 @@ function gameThread(gameData) {
             }
             combatin.push(advsData);
           }
-
-
 
           gridData.push({
             'playerID': t1.pID,
