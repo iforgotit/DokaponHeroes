@@ -55,6 +55,7 @@
                         <div class="row">
                             <div class="col-md-4" id="mdlDefend" align="center"></div>
                             <div style="overflow-x: auto;white-space: nowrap;" class="container-fluid col-md-8">
+                                <h2>Who will you attack?</h2>
                                 <div class="row" id="mdlAttack">
                                 </div>
                             </div>
@@ -330,7 +331,7 @@
             }
         }
 
-        function handleDefendEvent(dAction) {
+        function handleDefendEvent(dAction, e) {
             let y = document.getElementById("mdlDefend");
             let x = y.getElementsByTagName("button");
 
@@ -338,7 +339,7 @@
                 x[i].disabled = "disabled";
                 x[i].classList = "btn-block btn-default";
             }
-            event.currentTarget.classList = "btn-block btn-success";
+            e.currentTarget.classList = "btn-block btn-success";
 
             let turnJSON = {
                 "playerID": sessionStorage.id,
@@ -349,7 +350,7 @@
             socket.emit('turnData', turnJSON);
         }
 
-        function handleAttackEvent(aAction, aID) {
+        function handleAttackEvent(aAction, aID, e) {
             let y = document.getElementById("mdlAttack");
             let x = y.getElementsByTagName("button");
 
@@ -358,7 +359,7 @@
                 x[i].classList = "btn-block btn-default";
             }
 
-            event.currentTarget.classList = "btn-block btn-success";
+            e.currentTarget.classList = "btn-block btn-success";
 
             let turnJSON = {
                 "playerID": sessionStorage.id,
@@ -479,16 +480,16 @@
             a4.innerHTML = "Retreat";
 
             a1.onclick = function () {
-                handleAttackEvent(0, advs.pID);
+                handleAttackEvent(0, advs.pID, event);
             };
             a2.onclick = function () {
-                handleAttackEvent(1, advs.pID);
+                handleAttackEvent(1, advs.pID, event);
             };
             a3.onclick = function () {
-                handleAttackEvent(2, advs.pID);
+                handleAttackEvent(2, advs.pID, event);
             };
             a4.onclick = function () {
-                handleAttackEvent(3, advs.pID);
+                handleAttackEvent(3, advs.pID, event);
             };
 
             attackCol.appendChild(aLbl);
@@ -521,7 +522,7 @@
             d3.className = "btn-block btn-primary";
             d4.className = "btn-block btn-primary";
 
-            dLbl.innerHTML = "<h3>Defensive Action</h3>" + p.cardinal + "<br>HP:" + p.hp + "<br>Strength:" + p.strength +
+            dLbl.innerHTML = "<h3>Select Defense Strategy</h3>" + p.cardinal + "<br>HP:" + p.hp + "<br>Strength:" + p.strength +
                 "<br>Magic:" + p.magic + "<br>Cunning:" + p.cunning;
             d1.innerHTML = "Counter Attack";
             d2.innerHTML = "Block";
@@ -529,16 +530,16 @@
             d4.innerHTML = "Focus";
 
             d1.onclick = function () {
-                handleDefendEvent(0);
+                handleDefendEvent(0, event);
             };
             d2.onclick = function () {
-                handleDefendEvent(1);
+                handleDefendEvent(1, event);
             };
             d3.onclick = function () {
-                handleDefendEvent(2);
+                handleDefendEvent(2, event);
             };
             d4.onclick = function () {
-                handleDefendEvent(3);
+                handleDefendEvent(3, event);
             };
 
             defendPanel.appendChild(dLbl);
@@ -636,7 +637,7 @@
             };
         });
 
-        socket.on("endTurn", function(){
+        socket.on("endTurn", function () {
             disableGrids();
         });
 
@@ -700,7 +701,7 @@
 
                     eachHero.alpha = 1;
                     eachNameplate.alpha = 1;
-                    if (eachBrawl){
+                    if (eachBrawl) {
                         eachBrawl.alpha = 0;
                     }
                 }

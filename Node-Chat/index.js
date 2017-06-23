@@ -631,7 +631,7 @@ function gameThread(gameData) {
       if (c < 0) {
         c = 17;
 
-        socket.emit("endTurn");
+        ingame.in(gameData._id).emit('endTurn');
 
         MongoClient.connect(url, function (err, db) {
           assert.equal(null, err);
