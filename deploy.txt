@@ -10,4 +10,13 @@ sudo forever list
 sudo forever stop [id]
 
 
+
+cd stack/dhmmc/DokaponHeroes/Node-Chat
+
 sudo git pull origin master
+
+sudo forever list
+
+sudo forever stop [id]
+
+sudo forever start index.js -m5
