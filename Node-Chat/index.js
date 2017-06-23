@@ -412,9 +412,14 @@ function gameThread(gameData) {
     }
 
     function setDefense(iDefense) {
+      //for each player
       for (let i = 0; i <= (players.length - 1); i++) {
+        //check the defense array
+        players[i].defense = undefined;
         for (let j = 0; j <= (iDefense.length - 1); j++) {
+          //if that player is in the defense array
           if (players[i].pID == iDefense[j].playerID) {
+            //if that array is not empty
             if (iDefense[j].defense != undefined) {
               players[i].defense = players[i].defenseActions[iDefense[j].defense];
               if (players[i].defense == "Focus") {
@@ -426,11 +431,7 @@ function gameThread(gameData) {
                 players[i].magic += focusPower;
                 players[i].cunning += focusPower;
               }
-            } else {
-              players[i].defense = undefined;
             }
-          } else {
-            players[i].defense = undefined;
           }
         }
       }
@@ -511,7 +512,7 @@ function gameThread(gameData) {
               combat = "Something went wrong idk"
               break;
           }
-          ingame.in(gameData._id).emit('attack', combat);
+          ingame.in(gameData._id).emit('attack', combat, player.pID, advs.pID);
           if (players[playerIndex].hp <= 0) {
             dead(playerIndex);
           }
@@ -529,7 +530,7 @@ function gameThread(gameData) {
     function dead(playerIndex) {
       players[playerIndex].isDead = true;
       let rip = players[playerIndex].dName + " is no longer with us";
-      ingame.in(gameData._id).emit('attack', rip);
+      ingame.in(gameData._id).emit('died', rip, players[playerIndex].pID);
       players[playerIndex].inCombat = [];
     }
 
@@ -628,7 +629,9 @@ function gameThread(gameData) {
 
     function turnTime() {
       if (c < 0) {
-        c = 16;
+        c = 17;
+
+        socket.emit("endTurn");
 
         MongoClient.connect(url, function (err, db) {
           assert.equal(null, err);
@@ -681,6 +684,7 @@ function gameThread(gameData) {
               checkForCombat();
               inactive = 0;
 
+              ingame.in(gameData._id).emit('gameTime', 'Taking turn now');
             } else {
               inactive++;
               if (inactive > 3) {
@@ -742,10 +746,6 @@ function gameThread(gameData) {
             'inCombat': combatin,
             'isDead': t1.isDead
           });
-
-          if (t1.inCombat != 0) {
-            ingame.in(gameData._id).emit('brawlin', t1.pID, t2);
-          }
         }
         ingame.in(gameData._id).emit('setTurn', turnCount, gridData);
       } else {

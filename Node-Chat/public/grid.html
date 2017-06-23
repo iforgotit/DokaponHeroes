@@ -336,8 +336,9 @@
 
             for (let i = 0; i <= x.length - 1; i++) {
                 x[i].disabled = "disabled";
-                //x[i].classList.add('disabled');
+                x[i].classList = "btn-block btn-default";
             }
+            event.currentTarget.classList = "btn-block btn-success";
 
             let turnJSON = {
                 "playerID": sessionStorage.id,
@@ -354,8 +355,10 @@
 
             for (let i = 0; i <= x.length - 1; i++) {
                 x[i].disabled = "disabled";
-                x[i].classList.add('disabled');
+                x[i].classList = "btn-block btn-default";
             }
+
+            event.currentTarget.classList = "btn-block btn-success";
 
             let turnJSON = {
                 "playerID": sessionStorage.id,
@@ -546,34 +549,95 @@
 
         }
 
-        socket.on("attack", function (combat) {
+        socket.on("died", function (combat, pX) {
             document.getElementById("z").innerHTML += combat + "<br>";
+            let playerBrawl = stage.getChildByName("b" + pX);
+            let playerHero = stage.getChildByName(pX);
+            let playerName = stage.getChildByName("n" + pX);
+
+            playerBrawl.alpha = 0;
         });
 
-        socket.on("brawlin", function (pX, target) {
-            // if (!stage.getChildByName("b" + pX)) {
-            //     var brawlSprite = queue.getResult("brawlData");
-            //     let eachHero = stage.getChildByName(pX);
-            //     let eachNameplate = stage.getChildByName("n" + pX);
-            //     let brawl = new createjs.Sprite(brawlSprite, "fight");
+        socket.on("attack", function (combat, pX, pY) {
+            document.getElementById("z").innerHTML += combat + "<br>";
+            let playerBrawl = stage.getChildByName("b" + pX);
+            let advsBrawl = stage.getChildByName("b" + pY);
+            let playerHero = stage.getChildByName(pX);
+            let advsHero = stage.getChildByName(pY);
+            let playerName = stage.getChildByName("n" + pX);
+            let advsName = stage.getChildByName("n" + pY);
 
-            //     eachHero.alpha = 0;
-            //     eachNameplate.alpha = 0;
+            playerHero.x = playerHero.x + 25;
+            advsHero.x = advsHero.x - 25;
+            playerName.x = playerName.x + 25;
+            advsName.x = advsName.x - 25;
 
-            //     brawl.x = (target.x * 100) - 10;
-            //     brawl.y = (target.y * 100) - 6;
-            //     brawl.name = "b" + pX;
-            //     stage.addChild(brawl);
-            // }
-            // if (pX == sessionStorage.id) {
-            //     mOpen();
-            // }
+            playerHero.scaleX = -1;
+            advsHero.scaleX = 1;
+
+            playerBrawl.alpha = 0;
+            advsBrawl.alpha = 0;
+            playerHero.alpha = 1;
+            advsHero.alpha = 1;
+            playerName.alpha = 1;
+            advsName.alpha = 1;
+
+            createjs.Tween.get(playerHero, {
+                    loop: false
+                })
+                .to({
+                    x: playerHero.x - 25,
+                    alpha: 0
+                }, 1000, createjs.Ease.getPowInOut(4))
+
+            createjs.Tween.get(advsHero, {
+                    loop: false
+                })
+                .to({
+                    x: advsHero.x + 25,
+                    alpha: 0
+                }, 1000, createjs.Ease.getPowInOut(4))
+
+            createjs.Tween.get(playerName, {
+                    loop: false
+                })
+                .to({
+                    x: playerName.x - 25,
+                    alpha: 0
+                }, 1000, createjs.Ease.getPowInOut(4))
+
+            createjs.Tween.get(advsName, {
+                    loop: false
+                })
+                .to({
+                    x: advsName.x + 25,
+                    alpha: 0
+                }, 1000, createjs.Ease.getPowInOut(4))
+
+            createjs.Tween.get(playerBrawl, {
+                    loop: false
+                })
+                .to({
+                    alpha: 1
+                }, 1000, createjs.Ease.getPowInOut(4))
+
+            createjs.Tween.get(advsBrawl, {
+                    loop: false
+                })
+                .to({
+                    alpha: 1
+                }, 1000, createjs.Ease.getPowInOut(4))
+
         });
 
         socket.on("move", function (moveData) {
             for (let i = 0; i <= (moveData.length - 1); i++) {
                 movePlayer(moveData[i]);
             };
+        });
+
+        socket.on("endTurn", function(){
+            disableGrids();
         });
 
         socket.on("setTurn", function (iTurnCount, grid) {
@@ -584,7 +648,7 @@
             var x = document.getElementById("y");
             x.deleteRow(0);
             var row = x.insertRow(0);
-            
+
 
             for (let i = 0; i <= (grid.length - 1); i++) {
                 let pX = grid[i];
@@ -629,6 +693,17 @@
                     if (pX.playerID == sessionStorage.id) {
                         mOpen();
                     }
+                } else {
+                    let eachHero = stage.getChildByName(pX.playerID);
+                    let eachNameplate = stage.getChildByName("n" + pX.playerID);
+                    let eachBrawl = stage.getChildByName("b" + pX.playerID);
+
+                    eachHero.alpha = 1;
+                    eachNameplate.alpha = 1;
+                    if (eachBrawl){
+                        eachBrawl.alpha = 0;
+                    }
+                    document.getElementById("x").innerHTML += "697";
                 }
             };
         });
