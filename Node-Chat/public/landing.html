@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
 
-    <title>Dokapon Heroes</title>
+    <title>Turn of Heroes</title>
 
     <!-- Bootstrap core CSS -->
     <link href="../../assets/css/bootstrap.min.css" rel="stylesheet">
@@ -19,9 +19,9 @@
         <div class="row">
             <div class="panel col-sm-8">
                 <div class="panel-heading">
-                    <h1>Dokapon Heroes - Main Lobby</h1>
+                    <h1>Turn of Heroes - Main Lobby</h1>
                 </div>
-                <div id="pnlChat" class="panel-body" style="overflow-y: scroll;">
+                <div id="pnlChat" class="panel-body" style="overflow-y: scroll;" onscroll="scrollCheck()">
                     <div class="list-group" id="lichat">
                     </div>
                 </div>
@@ -53,6 +53,8 @@
             var socket = io();
 
             var chat = document.getElementById("lichat");
+            var chatBox = document.getElementById("pnlChat");
+            var scrolled = false;
             var chatHTML = '<a class="list-group-item"><h4 class="list-group-item-heading">Welcome ' + sessionStorage
                 .dName +
                 '</h4><p class="list-group-item-text">Trash talk down here</p></a>';
@@ -63,7 +65,18 @@
                 var chatHTML = '<a class="list-group-item"><h4 class="list-group-item-heading">' + JSONmsg.dName +
                     '</h4><p class="list-group-item-text">' + JSONmsg.msg + '</p></a>';
                 chat.innerHTML = chat.innerHTML + chatHTML;
+                if (scrolled == false){
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
             });
+
+            function scrollCheck() {
+                if (chatBox.scrollTop + chatBox.clientHeight == chatBox.scrollHeight) {
+                    scrolled = false;
+                } else {
+                    scrolled = true;
+                };
+            }
 
             socket.on('attendance', function () {
                 socket.emit('checkin', sessionStorage.dName);

@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
 
-    <title>Dokapon Heroes</title>
+    <title>Turn of Heroes</title>
 
     <!-- Bootstrap core CSS -->
     <link href="../../assets/css/bootstrap.min.css" rel="stylesheet">
@@ -91,9 +91,9 @@
             <div class="col-sm-5">
                 <div class="panel" style="width: 98%;">
                     <div class="panel-heading">
-                        <h2>Dokapon Heroes - Game Lobby</h2>
+                        <h2>Turn of Heroes - Game Lobby</h2>
                     </div>
-                    <div id="pnlChat" class="panel-body" style="overflow-y: scroll;">
+                    <div id="pnlChat" class="panel-body" style="overflow-y: scroll;" onscroll="scrollCheck()">
                         <div class="list-group" id="lichat">
                         </div>
                     </div>
@@ -116,13 +116,27 @@
             var selectedClass = undefined;
 
             var chat = document.getElementById("lichat");
+            var chatBox = document.getElementById("pnlChat");
+            var scrolled = false;
 
             socket.on('chat', function (JSONmsg) {
                 var chat = document.getElementById("lichat");
-                var chatHTML = '<a class="list-group-item"><h4 class="list-group-item-heading">' + JSONmsg.dName +
-                    '</h4><p class="list-group-item-text">' + JSONmsg.msg + '</p></a>';
+                var chatHTML = '<a class="list-group-item"><p class="list-group-item-heading">' + JSONmsg.dName +
+                    '</p><p class="list-group-item-text">' + JSONmsg.msg + '</p></a>';
                 chat.innerHTML = chat.innerHTML + chatHTML;
+
+                if (scrolled == false) {
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
             });
+
+            function scrollCheck() {
+                if (chatBox.scrollTop + chatBox.clientHeight == chatBox.scrollHeight) {
+                    scrolled = false;
+                } else {
+                    scrolled = true;
+                };
+            }
 
             socket.on('ggTimer', function () {
                 socket.emit('killTimer');
@@ -134,6 +148,7 @@
                     aSltClass[i].style.pointerEvents = "none";
                 }
                 document.getElementById("btnStartGame").value = "Game Starting";
+                chatBox.scrollTop = chatBox.scrollHeight;
             });
 
             socket.on('attendance', function () {
@@ -267,7 +282,7 @@
             function startGame() {
                 document.getElementById("btnStartGame").classList.add('disabled');
                 document.getElementById("btnStartGame").disabled = true;
-                let playerCount =document.getElementById("pC");
+                let playerCount = document.getElementById("pC");
                 socket.emit('startGame', playerCount);
             }
 

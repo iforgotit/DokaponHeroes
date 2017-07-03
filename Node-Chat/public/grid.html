@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
 
-    <title>Dokapon Heroes</title>
+    <title>Turn of Heroes</title>
 
     <!-- Bootstrap core CSS -->
     <link href="../../assets/css/bootstrap.min.css" rel="stylesheet">
@@ -331,15 +331,18 @@
             }
         }
 
-        function handleDefendEvent(dAction, e) {
+        function handleDefendEvent(dAction) {
             let y = document.getElementById("mdlDefend");
             let x = y.getElementsByTagName("button");
 
             for (let i = 0; i <= x.length - 1; i++) {
                 x[i].disabled = "disabled";
-                x[i].classList = "btn-block btn-default";
+                if (i == dAction) {
+                    x[i].classList = "btn-block btn-success";
+                } else {
+                    x[i].classList = "btn-block btn-default";
+                }
             }
-            e.currentTarget.classList = "btn-block btn-success";
 
             let turnJSON = {
                 "playerID": sessionStorage.id,
@@ -350,16 +353,18 @@
             socket.emit('turnData', turnJSON);
         }
 
-        function handleAttackEvent(aAction, aID, e) {
+        function handleAttackEvent(aAction, aID) {
             let y = document.getElementById("mdlAttack");
             let x = y.getElementsByTagName("button");
 
             for (let i = 0; i <= x.length - 1; i++) {
                 x[i].disabled = "disabled";
-                x[i].classList = "btn-block btn-default";
+                if (i == aAction) {
+                    x[i].classList = "btn-block btn-success";
+                } else {
+                    x[i].classList = "btn-block btn-default";
+                }
             }
-
-            e.currentTarget.classList = "btn-block btn-success";
 
             let turnJSON = {
                 "playerID": sessionStorage.id,
@@ -449,19 +454,43 @@
             document.getElementById('mdlCombat').style.display = "none";
         }
 
+        function setAdvs(advs) {
+            let attackRow = document.getElementById("mdlAttack");
+
+            let aButton = document.createElement("button");
+
+            aButton.className = "btn btn-primary";
+            aButton.style = "border: 2px solid black";
+
+            aButton.onclick = function () {
+                setAttack(advs);
+            };
+
+            aButton.innerHTML = "<h3>" + advs.dName + "</h3>HP:" + advs.hp + "<br>Strength:" + advs.strength +
+                "<br>Magic:" + advs.magic + "<br>Cunning:" + advs.cunning;
+
+            attackRow.appendChild(aButton);
+        }
+
         function setAttack(advs) {
-            var attackRow = document.getElementById("mdlAttack");
-            var attackCol = document.createElement("div");
 
-            var aLbl = document.createElement("p");
-            var a1 = document.createElement("button");
-            var a2 = document.createElement("button");
-            var a3 = document.createElement("button");
-            var a4 = document.createElement("button");
-            var pad = document.createElement("p");
+            let attackRow = document.getElementById("mdlAttack");
+            let attackPlayer = document.createElement("div");
+            let attackAction = document.createElement("div");
 
-            attackCol.className = "col-md-4 text-center";
-            attackCol.style = "display: inline-block;float: none;";
+            let aLbl = document.createElement("p");
+            let a1 = document.createElement("button");
+            let a2 = document.createElement("button");
+            let a3 = document.createElement("button");
+            let a4 = document.createElement("button");
+            let pad = document.createElement("p");
+
+            attackRow.innerHTML = "";
+
+            attackPlayer.className = "col-md-6 text-center";
+            attackPlayer.style = "display: inline-block;float: none;";
+            attackAction.className = "col-md-6 text-center";
+            attackAction.style = "display: inline-block;float: none;";
             aLbl.style = "word-wrap: break-word";
             a1.style = "margin-bottom:4px;white-space: normal;";
             a2.style = "margin-bottom:4px;white-space: normal;";
@@ -480,37 +509,39 @@
             a4.innerHTML = "Retreat";
 
             a1.onclick = function () {
-                handleAttackEvent(0, advs.pID, event);
+                handleAttackEvent(0, advs.pID);
             };
             a2.onclick = function () {
-                handleAttackEvent(1, advs.pID, event);
+                handleAttackEvent(1, advs.pID);
             };
             a3.onclick = function () {
-                handleAttackEvent(2, advs.pID, event);
+                handleAttackEvent(2, advs.pID);
             };
             a4.onclick = function () {
-                handleAttackEvent(3, advs.pID, event);
+                handleAttackEvent(3, advs.pID);
             };
 
-            attackCol.appendChild(aLbl);
-            attackCol.appendChild(a1);
-            attackCol.appendChild(a2);
-            attackCol.appendChild(a3);
-            attackCol.appendChild(a4);
-            attackCol.appendChild(pad);
-            attackRow.appendChild(attackCol);
+            attackPlayer.appendChild(aLbl);
+            attackPlayer.appendChild(pad);
+            attackAction.appendChild(a1);
+            attackAction.appendChild(a2);
+            attackAction.appendChild(a3);
+            attackAction.appendChild(a4);
+            attackAction.appendChild(pad);
+            attackRow.appendChild(attackPlayer);
+            attackRow.appendChild(attackAction);
         }
 
         function setDefend(p) {
-            var defendPanel = document.getElementById("mdlDefend");
+            let defendPanel = document.getElementById("mdlDefend");
 
             defendPanel.innerHTML = "";
 
-            var dLbl = document.createElement("p");
-            var d1 = document.createElement("button");
-            var d2 = document.createElement("button");
-            var d3 = document.createElement("button");
-            var d4 = document.createElement("button");
+            let dLbl = document.createElement("p");
+            let d1 = document.createElement("button");
+            let d2 = document.createElement("button");
+            let d3 = document.createElement("button");
+            let d4 = document.createElement("button");
 
             dLbl.style = "word-wrap: break-word";
             d1.style = "margin-bottom:4px;white-space: normal;";
@@ -530,16 +561,16 @@
             d4.innerHTML = "Focus";
 
             d1.onclick = function () {
-                handleDefendEvent(0, event);
+                handleDefendEvent(0);
             };
             d2.onclick = function () {
-                handleDefendEvent(1, event);
+                handleDefendEvent(1);
             };
             d3.onclick = function () {
-                handleDefendEvent(2, event);
+                handleDefendEvent(2);
             };
             d4.onclick = function () {
-                handleDefendEvent(3, event);
+                handleDefendEvent(3);
             };
 
             defendPanel.appendChild(dLbl);
@@ -557,6 +588,13 @@
             let playerName = stage.getChildByName("n" + pX);
 
             playerBrawl.alpha = 0;
+
+            // createjs.Tween.get(playerHero, {
+            //         loop: false
+            //     })
+            //     .to({ }, 1000).call(function () {
+            //         eachHero.gotoAndPlay("dead");
+            //     });
         });
 
         socket.on("attack", function (combat, pX, pY) {
@@ -569,8 +607,8 @@
             let advsName = stage.getChildByName("n" + pY);
 
             playerHero.x = playerHero.x + 25;
-            advsHero.x = advsHero.x - 25;
             playerName.x = playerName.x + 25;
+            advsHero.x = advsHero.x - 25;
             advsName.x = advsName.x - 25;
 
             playerHero.scaleX = -1;
@@ -587,33 +625,39 @@
                     loop: false
                 })
                 .to({
-                    x: playerHero.x - 25,
-                    alpha: 0
+                    x: playerHero.x - 25
                 }, 1000, createjs.Ease.getPowInOut(4))
+                .to({
+                    alpha: 0
+                }, 1, createjs.Ease.getPowInOut(4))
 
             createjs.Tween.get(advsHero, {
                     loop: false
                 })
+                .to({}, 1000, createjs.Ease.getPowInOut(4))
                 .to({
-                    x: advsHero.x + 25,
-                    alpha: 0
-                }, 1000, createjs.Ease.getPowInOut(4))
+                    alpha: 0,
+                    x: advsHero.x + 25
+                }, 1, createjs.Ease.getPowInOut(4))
 
             createjs.Tween.get(playerName, {
                     loop: false
                 })
                 .to({
-                    x: playerName.x - 25,
-                    alpha: 0
+                    x: playerName.x - 25
                 }, 1000, createjs.Ease.getPowInOut(4))
+                .to({
+                    alpha: 0
+                }, 1, createjs.Ease.getPowInOut(4))
 
             createjs.Tween.get(advsName, {
                     loop: false
                 })
+                .to({}, 1000, createjs.Ease.getPowInOut(4))
                 .to({
-                    x: advsName.x + 25,
-                    alpha: 0
-                }, 1000, createjs.Ease.getPowInOut(4))
+                    alpha: 0,
+                    x: advsName.x + 25
+                }, 1, createjs.Ease.getPowInOut(4))
 
             createjs.Tween.get(playerBrawl, {
                     loop: false
@@ -654,6 +698,9 @@
             for (let i = 0; i <= (grid.length - 1); i++) {
                 let pX = grid[i];
                 let cell = row.insertCell(i);
+                let eachHero = stage.getChildByName(pX.playerID);
+                let eachNameplate = stage.getChildByName("n" + pX.playerID);
+
                 if (pX.playerID == sessionStorage.id) {
                     cell.style.color = "#ffa500";
                     if (pX.inCombat.length == 0) {
@@ -663,7 +710,7 @@
 
                         disableGrids();
                         for (let i = 0; i <= (advs.length - 1); i++) {
-                            setAttack(advs[i]);
+                            setAdvs(advs[i]);
                         };
                         setDefend(pX);
                     }
@@ -679,8 +726,6 @@
                 if (pX.inCombat != 0) {
                     if (!stage.getChildByName("b" + pX.playerID)) {
                         var brawlSprite = queue.getResult("brawlData");
-                        let eachHero = stage.getChildByName(pX.playerID);
-                        let eachNameplate = stage.getChildByName("n" + pX.playerID);
                         let brawl = new createjs.Sprite(brawlSprite, "fight");
 
                         eachHero.alpha = 0;
@@ -695,14 +740,19 @@
                         mOpen();
                     }
                 } else {
-                    let eachHero = stage.getChildByName(pX.playerID);
-                    let eachNameplate = stage.getChildByName("n" + pX.playerID);
                     let eachBrawl = stage.getChildByName("b" + pX.playerID);
 
+                    if (pX.isDead == true) {
+                        //remove these ones sprites are fixed
+                        eachHero.alpha = 0;
+                        eachNameplate.alpha = 0;
+                    }else{
                     eachHero.alpha = 1;
                     eachNameplate.alpha = 1;
+                    }
+
                     if (eachBrawl) {
-                        eachBrawl.alpha = 0;
+                        stage.removeChild(eachBrawl);
                     }
                 }
             };
@@ -720,7 +770,8 @@
         });
 
         socket.on('result', function (strResult) {
-            let text = new createjs.Text(strResult, "bold 86px Arial", "#ff7700");
+            let text = new createjs.Text(strResult, "bold 72px Arial", "#ff7700");
+            text.lineWidth = 200;
             text.x = 100;
             text.y = 0;
 

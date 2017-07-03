@@ -337,8 +337,10 @@ function gameThread(gameData) {
   }
 
   var loading = setInterval(checkPlayers, 1000);
+  var timeOut = 0;
 
   function checkPlayers() {
+    timeOut++;
 
     MongoClient.connect(url, function (err, db) {
       assert.equal(null, err);
@@ -352,7 +354,7 @@ function gameThread(gameData) {
           }
         }
 
-        if (readyCheck == true) {
+        if (readyCheck == true || timeOut > 120) {
           ingame.in(gameData._id).emit("allLoaded");
           gamePlay(playersStatus);
           clearInterval(loading);
@@ -402,6 +404,24 @@ function gameThread(gameData) {
       }
     }
 
+    function gameResults() {
+      let alive = new Array();
+
+      for (let i = 0; i < players.length; i++) {
+        if (players[i].isDead == false) {
+          alive.push(players[i].dName);
+        }
+      }
+
+      if (alive.length > 1) {
+        return false;
+      } else if (alive.length == 1) {
+        return alive[0] + " wins!";
+      } else {
+        return "draw";
+      }
+    }
+
     function updatePlayerMoves(moveTurn) {
       for (let i = 0; i <= (moveTurn.length - 1); i++) {
         let player = players[findPlayer(moveTurn[i].playerID)];
@@ -425,7 +445,7 @@ function gameThread(gameData) {
               if (players[i].defense == "Focus") {
                 let focusPower = players[i].magic;
 
-                players[i].focusDecay[turnCount + 3] = focusPower;
+                players[i].focusDecay[turnCount + 2] = focusPower;
 
                 players[i].strength += focusPower;
                 players[i].magic += focusPower;
@@ -499,7 +519,7 @@ function gameThread(gameData) {
             case "Magic Missile":
               damage = player.magic * 2;
               if (advs.defense == "Resist") {
-                damage = damage / 2;
+                damage = damage - advs.magic;
               }
               damage = Math.ceil(damage);
               combat = player.dName + "'s " + playerAttack + " does " + damage + " to " + advs.dName;
@@ -722,15 +742,17 @@ function gameThread(gameData) {
 
           for (let a = 0; a <= (t1.inCombat.length - 1); a++) {
             let advs = players[findPlayer(t1.inCombat[a])];
-            let advsData = {
-              'pID': advs.pID,
-              'dName': advs.dName,
-              'hp': advs.hp,
-              'strength': advs.strength,
-              'magic': advs.magic,
-              'cunning': advs.cunning
+            if (advs.isDead == false) {
+              let advsData = {
+                'pID': advs.pID,
+                'dName': advs.dName,
+                'hp': advs.hp,
+                'strength': advs.strength,
+                'magic': advs.magic,
+                'cunning': advs.cunning
+              }
+              combatin.push(advsData);
             }
-            combatin.push(advsData);
           }
 
           gridData.push({
@@ -747,7 +769,16 @@ function gameThread(gameData) {
             'isDead': t1.isDead
           });
         }
-        ingame.in(gameData._id).emit('setTurn', turnCount, gridData);
+        var winner = gameResults();
+
+        if (winner == false) {
+          ingame.in(gameData._id).emit('setTurn', turnCount, gridData);
+        } else {
+          clearInterval(t);
+          ingame.in(gameData._id).emit('gameTime', 'GAME OVER!');
+          ingame.in(gameData._id).emit('result', winner);
+        }
+
       } else {
         ingame.in(gameData._id).emit('gameTime', c);
       }
