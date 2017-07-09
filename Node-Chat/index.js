@@ -500,6 +500,7 @@ function gameThread(gameData) {
                   players[advsIndex].hp -= damage;
                 } else {
                   combat = advs.dName + " put on his juke shoes and dodged " + player.dName + "'s attack";
+                  damage = 0;
                 }
               }
               break;
@@ -514,6 +515,7 @@ function gameThread(gameData) {
                 players[advsIndex].hp -= damage;
               } else {
                 combat = advs.dName + " put on his juke shoes and dodged " + player.dName + "'s attack";
+                damage = 0;
               }
               break;
             case "Magic Missile":
@@ -532,7 +534,7 @@ function gameThread(gameData) {
               combat = "Something went wrong idk"
               break;
           }
-          ingame.in(gameData._id).emit('attack', combat, player.pID, advs.pID);
+          ingame.in(gameData._id).emit('attack', combat, player.pID, advs.pID, damage);
           if (players[playerIndex].hp <= 0) {
             dead(playerIndex);
           }
@@ -684,6 +686,18 @@ function gameThread(gameData) {
                     defendARAY.push({
                       'playerID': turnDB[i].playerID,
                       'defense': turnDB[i].dAction
+                    });
+                    break;
+                  case "retreat":
+                    let xRetreat = Math.floor((Math.random() * turnDB[i].gridSize));
+                    let yRetreat = Math.floor((Math.random() * turnDB[i].gridSize));
+                    moveARAY.push({
+                      'playerID': turnDB[i].playerID,
+                      'stageX': xRetreat*100,
+                      'target': {
+                        'x': xRetreat,
+                        'y': yRetreat
+                      }
                     });
                     break;
                   default:

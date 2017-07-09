@@ -22,15 +22,13 @@
 <body onload="init();">
     <div class="container-fluid">
         <div class="row">
-            <div class="col-sm-10">
+            <div class="col-sm-2" id="divPlayersPanel" style="overflow: auto">
+            </div>
+            <div id="divBattlefield" class="col-sm-8" style="overflow: auto">
                 <!-- battlefield is the stage -->
                 <canvas id="battlefield" width="500"></canvas>
                 <!-- x is a debugging panel -->
                 <p id="x"></p>
-                <!-- y is currently displaying the players eventually would like to move this to a left div panel -->
-                <table id="y" style="border-spacing:10px;">
-                    <tr></tr>
-                </table>
                 <!-- z is a debugging display -->
                 <p id="z"></p>
             </div>
@@ -53,7 +51,7 @@
                     </div>
                     <div class="modal-body">
                         <div class="row">
-                            <div class="col-md-4" id="mdlDefend" align="center"></div>
+                            <div class="col-md-4" id="mdlDefend" align="center" style="border-right-style: solid;"></div>
                             <div style="overflow-x: auto;white-space: nowrap;" class="container-fluid col-md-8">
                                 <h2>Who will you attack?</h2>
                                 <div class="row" id="mdlAttack">
@@ -87,6 +85,9 @@
                 canvas.height = 520;
                 canvas.width = 520;
             }
+            var wheight = window.innerHeight + "px";
+            document.getElementById("divPlayersPanel").style.height = wheight;
+            document.getElementById("divBattlefield").style.height = wheight;
         }
 
         // returns the max x or y, this needs to be multipled by 100 to get grid coords
@@ -376,6 +377,28 @@
             socket.emit('turnData', turnJSON);
         }
 
+        function handleRetreatEvent(aAction) {
+            let y = document.getElementById("mdlAttack");
+            let x = y.getElementsByTagName("button");
+
+            for (let i = 0; i <= x.length - 1; i++) {
+                x[i].disabled = "disabled";
+                if (i == aAction) {
+                    x[i].classList = "btn-block btn-success";
+                } else {
+                    x[i].classList = "btn-block btn-default";
+                }
+            }
+
+            let turnJSON = {
+                "playerID": sessionStorage.id,
+                "actionType": "retreat",
+                "turn": turnCount,
+                "gridSize": getbfgridxy()
+            }
+            socket.emit('turnData', turnJSON);
+        }
+
         function movePlayer(PlayerTurnData) {
             let target = PlayerTurnData.target;
             if (turnSelected != undefined) {
@@ -518,7 +541,7 @@
                 handleAttackEvent(2, advs.pID);
             };
             a4.onclick = function () {
-                handleAttackEvent(3, advs.pID);
+                handleRetreatEvent(3)
             };
 
             attackPlayer.appendChild(aLbl);
@@ -597,7 +620,7 @@
             //     });
         });
 
-        socket.on("attack", function (combat, pX, pY) {
+        socket.on("attack", function (combat, pX, pY, damage) {
             document.getElementById("z").innerHTML += combat + "<br>";
             let playerBrawl = stage.getChildByName("b" + pX);
             let advsBrawl = stage.getChildByName("b" + pY);
@@ -605,6 +628,23 @@
             let advsHero = stage.getChildByName(pY);
             let playerName = stage.getChildByName("n" + pX);
             let advsName = stage.getChildByName("n" + pY);
+
+            let text = new createjs.Text(damage, "bold 32px Arial", "#ff7700");
+            text.x = playerHero.x;
+            text.y = playerHero.y;
+
+            stage.addChild(text);
+
+            createjs.Tween.get(text, {
+                    loop: false
+                })
+                .to({
+                    y: text.y + 50,
+                    x: text.x + 50
+                }, 1000, createjs.Ease.bounceOut)
+                .call(function () {
+                    stage.removeChild(text)
+                })
 
             playerHero.x = playerHero.x + 25;
             playerName.x = playerName.x + 25;
@@ -672,7 +712,6 @@
                 .to({
                     alpha: 1
                 }, 1000, createjs.Ease.getPowInOut(4))
-
         });
 
         socket.on("move", function (moveData) {
@@ -690,19 +729,46 @@
 
             turnCount = iTurnCount;
             document.getElementById("turn").innerHTML = turnCount;
-            var x = document.getElementById("y");
-            x.deleteRow(0);
-            var row = x.insertRow(0);
-
+            // var x = document.getElementById("y");
+            // x.deleteRow(0);
+            // var row = x.insertRow(0);
+            var divPlayersPanel = document.getElementById("divPlayersPanel");
+            divPlayersPanel.innerHTML = "";
 
             for (let i = 0; i <= (grid.length - 1); i++) {
                 let pX = grid[i];
-                let cell = row.insertCell(i);
+                //let cell = row.insertCell(i);
+                let playerPanel = document.createElement("div");
+                let h3Name = document.createElement("h3");
+                let pData = document.createElement("p");
+                let divProgress = document.createElement("div");
+                let divBar = document.createElement("div");
                 let eachHero = stage.getChildByName(pX.playerID);
                 let eachNameplate = stage.getChildByName("n" + pX.playerID);
 
+                playerPanel.classList = "thumbnail";
+                playerPanel.align = "center";
+                divProgress.classList = "progress";
+                divBar.classList = "progress-bar progress-bar-success";
+
+                playerPanel.appendChild(h3Name);
+                playerPanel.appendChild(divProgress);
+                divProgress.appendChild(divBar);
+                playerPanel.appendChild(pData);
+                divPlayersPanel.appendChild(playerPanel);
+
+                //todo pass actual max health
+                let maxHP = 20;
+                let hpPercent = Math.trunc((pX.hp / maxHP) * 100);
+
+                h3Name.innerHTML = pX.dName;
+                divBar.style.width = hpPercent + "%";
+                divBar.innerHTML = pX.hp;
+                pData.innerHTML = "Stars: ";
+
                 if (pX.playerID == sessionStorage.id) {
-                    cell.style.color = "#ffa500";
+                    //cell.style.color = "#ffa500";
+                    playerPanel.style.backgroundColor = "#ff7700";
                     if (pX.inCombat.length == 0) {
                         availableGrids(pX.target);
                     } else {
@@ -719,10 +785,11 @@
                     }
                 };
                 if (pX.isDead == true) {
-                    cell.innerHTML = pX.dName + "<br>Dead";
-                } else {
-                    cell.innerHTML = pX.dName + "<br>" + pX.hp;
-                }
+                    //cell.innerHTML = pX.dName + "<br>Dead";
+                    pData.innerHTML = "Dead"
+                } //else {
+                //cell.innerHTML = pX.dName + "<br>" + pX.hp;
+                //}
                 if (pX.inCombat != 0) {
                     if (!stage.getChildByName("b" + pX.playerID)) {
                         var brawlSprite = queue.getResult("brawlData");
@@ -746,9 +813,9 @@
                         //remove these ones sprites are fixed
                         eachHero.alpha = 0;
                         eachNameplate.alpha = 0;
-                    }else{
-                    eachHero.alpha = 1;
-                    eachNameplate.alpha = 1;
+                    } else {
+                        eachHero.alpha = 1;
+                        eachNameplate.alpha = 1;
                     }
 
                     if (eachBrawl) {
@@ -771,8 +838,10 @@
 
         socket.on('result', function (strResult) {
             let text = new createjs.Text(strResult, "bold 72px Arial", "#ff7700");
+            let divBFW = document.getElementById("divBattlefield").offsetWidth;
+            let textX = (divBFW/2) - 100;
             text.lineWidth = 200;
-            text.x = 100;
+            text.x = textX;
             text.y = 0;
 
             stage.addChild(text);
