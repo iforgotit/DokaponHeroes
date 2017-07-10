@@ -185,6 +185,11 @@
                 id: "grass",
                 src: "../../assets/img/grass.png"
             }, {
+                id: "star",
+                src: "../../assets/sprites/star.json",
+                type: "spritesheet",
+                crossOrigin: true
+            }, {
                 id: "mightData",
                 src: "../../assets/sprites/might.json",
                 type: "spritesheet",
@@ -620,6 +625,15 @@
             //     });
         });
 
+        socket.on('newStar', function (starLoc) {
+            var starSprite = queue.getResult("star");
+            var star = new createjs.Sprite(starSprite, "spin");
+            star.x = (starLoc.x*100)+10;
+            star.y = (starLoc.y*100)+10;
+            stage.addChild(star);
+        });
+
+
         socket.on("attack", function (combat, pX, pY, damage) {
             document.getElementById("z").innerHTML += combat + "<br>";
             let playerBrawl = stage.getChildByName("b" + pX);
@@ -839,7 +853,7 @@
         socket.on('result', function (strResult) {
             let text = new createjs.Text(strResult, "bold 72px Arial", "#ff7700");
             let divBFW = document.getElementById("divBattlefield").offsetWidth;
-            let textX = (divBFW/2) - 100;
+            let textX = (divBFW / 2) - 100;
             text.lineWidth = 200;
             text.x = textX;
             text.y = 0;

@@ -1,40 +1,69 @@
-<!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
-    <title>Bootstrap Example</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- Bootstrap core CSS -->
-    <link href="../../assets/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-</head>
-
-<body>
-
-    <div class="container">
-        <h2>Large Modal</h2>
-        <!-- Trigger/Open The Modal -->
-        <button id="myBtn">Open Modal</button>
-
-        <!-- The Modal -->
-        <div id="myModal" class="modal">
-
-            <!-- Modal content -->
-            <div class="modal-content">
-                <span class="close">&times;</span>
-                <p>Some text in the Modal..</p>
-            </div>
-
-        </div>
-    </div>
+    <Title>I DONT KNOW WHAT I AM DOING </title>
+    <script src="https://code.createjs.com/easeljs-0.8.0.min.js"></script>
+    <script src="https://code.createjs.com/tweenjs-0.6.0.min.js"></script>
     <script>
-        function mOpen() {
-            $('#myModal').modal('show');
+        function init() {
+            var stage = new createjs.Stage("demoCanvas");
+            var data = {
+                "images": [
+                    "./assets/sprites/star.json"
+                ],
+                "frames": [
+                    [1, 1, 74, 72, 0, 0, 0],
+                    [1, 75, 74, 72, 0, 0, 0],
+                    [1, 149, 74, 72, 0, 0, 0],
+                    [1, 223, 74, 72, 0, 0, 0],
+                    [1, 297, 74, 72, 0, 0, 0],
+                    [1, 371, 74, 72, 0, 0, 0],
+                    [1, 445, 74, 72, 0, 0, 0],
+                    [1, 519, 74, 72, 0, 0, 0],
+                    [1, 593, 74, 72, 0, 0, 0],
+                    [1, 667, 74, 72, 0, 0, 0],
+                    [1, 741, 74, 72, 0, 0, 0],
+                    [1, 815, 74, 72, 0, 0, 0],
+                    [1, 889, 74, 72, 0, 0, 0],
+                    [1, 963, 74, 72, 0, 0, 0],
+                    [1, 1037, 74, 72, 0, 0, 0],
+                    [1, 1111, 74, 72, 0, 0, 0],
+                    [1, 1185, 74, 72, 0, 0, 0],
+                    [1, 1259, 74, 72, 0, 0, 0],
+                    [1, 1333, 74, 74, 0, 0, 0],
+                    [1, 1409, 74, 74, 0, 0, 0]
+                ],
+                "animations": {
+                    "spin": {
+                        "frames": [0, 2, 4, 6, 8, 10, 12, 14, 16]
+                    },
+                    "stop": {
+                        "frames": [19]
+                    }
+                }
+
+            };
+            var spriteSheet = new createjs.SpriteSheet(data);
+            var spinstar = new createjs.Sprite(spriteSheet, "spin");
+
+            stage.addChild(spinstar);
+
+            createjs.Ticker.setFPS(30);
+            createjs.Ticker.addEventListener("tick", stage);
+
+            function recordMouse(event) {
+                document.getElementById("x").innerHTML = event.stageX;
+                document.getElementById("y").innerHTML = event.stageY;
+            }
         }
     </script>
+</head>
 
+<body onload="init();">
+    <script src="https://code.createjs.com/easeljs-0.8.0.min.js"></script>
+    <canvas id="demoCanvas" width="600" height="600"></canvas>
+    <p id="x"></p>
+    <p id="y"></p>
 </body>
 
 </html>

@@ -344,8 +344,10 @@ function gameThread(gameData) {
 
     MongoClient.connect(url, function (err, db) {
       assert.equal(null, err);
-      getGameInit(db, getGameID(), function (playersStatus) {
+      getGameInit(db, getGameID(), function (gameData) {
         db.close();
+        let playersStatus = gameData.players;
+        let gridSize = gameData.size;
         var readyCheck = true;
 
         for (let i = 0; i < playersStatus.length; i++) {
@@ -356,7 +358,7 @@ function gameThread(gameData) {
 
         if (readyCheck == true || timeOut > 120) {
           ingame.in(gameData._id).emit("allLoaded");
-          gamePlay(playersStatus);
+          gamePlay(playersStatus, gridSize);
           clearInterval(loading);
         }
 
@@ -371,12 +373,12 @@ function gameThread(gameData) {
         _id: ObjectId(iGameID)
       }).toArray(function (err, result) {
         assert.equal(err, null);
-        callback(result[0].players);
+        callback(result[0]);
       });
     }
   }
 
-  function gamePlay(players) {
+  function gamePlay(players, size) {
 
     var t = setInterval(turnTime, 1000);
     var c = 5;
@@ -401,6 +403,33 @@ function gameThread(gameData) {
           }
 
         }
+      }
+    }
+
+    function createStars() {
+      let starCount = players.length * 2;
+      let pLoc = new Array();
+
+      //create an array of player locations for not spawning stars on them
+      for (let i = 0; i < players.length; i++) {
+        if (players[i].isDead == false) {
+          pLoc.push = {
+            'x': players[i].x,
+            'y': players[i].y
+          }
+        }
+      }
+
+      for (let i = 0; i <= starCount; i++) {
+        let starX = Math.floor((Math.random() * size))
+        let starY = Math.floor((Math.random() * size))
+        //for (let i = 0; i < pLoc; i++) {
+        //}
+        let starVar = {
+          'x': starX,
+          'y': starY
+        };
+        ingame.in(gameData._id).emit('newStar', starVar);
       }
     }
 
@@ -693,7 +722,7 @@ function gameThread(gameData) {
                     let yRetreat = Math.floor((Math.random() * turnDB[i].gridSize));
                     moveARAY.push({
                       'playerID': turnDB[i].playerID,
-                      'stageX': xRetreat*100,
+                      'stageX': xRetreat * 100,
                       'target': {
                         'x': xRetreat,
                         'y': yRetreat
@@ -793,6 +822,9 @@ function gameThread(gameData) {
           ingame.in(gameData._id).emit('result', winner);
         }
 
+      } else if (turnCount == 0 && c == 3) {
+        ingame.in(gameData._id).emit('gameTime', 'Setting up game');
+        createStars();
       } else {
         ingame.in(gameData._id).emit('gameTime', c);
       }
