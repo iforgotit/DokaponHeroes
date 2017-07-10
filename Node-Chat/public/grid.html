@@ -852,8 +852,8 @@
 
         socket.on('result', function (strResult) {
             let text = new createjs.Text(strResult, "bold 72px Arial", "#ff7700");
-            let divBFW = document.getElementById("divBattlefield").offsetWidth;
-            let textX = (divBFW / 2) - 100;
+            let BFW = document.getElementById("battlefield").offsetWidth;
+            let textX = (BFW / 2) - 100;
             text.lineWidth = 200;
             text.x = textX;
             text.y = 0;
