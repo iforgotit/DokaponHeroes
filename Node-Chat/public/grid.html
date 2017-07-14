@@ -640,7 +640,7 @@
       let starSprite = stage.getChildByName("star" + starID);
       stage.setChildIndex(starSprite, stage.getNumChildren() - 1);
       TweenMax.to(starSprite, 1, {
-        scaleX: 0.1,
+        scale: 0.1,
         y: starSprite.y - 20,
         onComplete: function () {
           stage.removeChild(starSprite)
