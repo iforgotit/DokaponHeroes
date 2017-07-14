@@ -446,7 +446,6 @@ function gameThread(gameData) {
         }
       }
       setStarGrid(grid);
-      console.log(grid);
     }
 
     function gameResults() {

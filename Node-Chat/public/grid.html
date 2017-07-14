@@ -638,10 +638,10 @@
 
     socket.on('getStar', function (starID) {
       let starSprite = stage.getChildByName("star" + starID);
-      stage.setChildIndex( starSprite, stage.getNumChildren()-1);
+      stage.setChildIndex(starSprite, stage.getNumChildren() - 1);
       TweenMax.to(starSprite, 1, {
-        scale: 0.1,
-        y: starSprite.y +20,
+        scaleX: 0.1,
+        y: starSprite.y - 20,
         onComplete: function () {
           stage.removeChild(starSprite)
         }
@@ -723,7 +723,7 @@
             }, "end")
           break;
         case "magical":
-                  combatTL.to(playerHero, 1, {
+          combatTL.to(playerHero, 1, {
               onStart: function () {
                 playerHero.gotoAndPlay("Attack");
               }
@@ -743,8 +743,44 @@
             }, "end")
           break;
         case "dodge":
+          combatTL.to(playerHero, 1, {
+              onStart: function () {
+                playerHero.gotoAndPlay("Attack");
+              }
+            })
+            .to(advsHero, 1, {
+              onStart: function () {
+                advsHero.gotoAndPlay("Hurt");
+              }
+            }, 0)
+            .to(playerHero, .5, {
+              alpha: 0,
+              onComplete: resetPlayer
+            }, "end")
+            .to(advsHero, .5, {
+              alpha: 0,
+              onComplete: resetAdvs
+            }, "end")
           break;
         case "riposte":
+          combatTL.to(playerHero, 1, {
+              onStart: function () {
+                playerHero.gotoAndPlay("Attack");
+              }
+            })
+            .to(advsHero, 1, {
+              onStart: function () {
+                advsHero.gotoAndPlay("Hurt");
+              }
+            }, 0)
+            .to(playerHero, .5, {
+              alpha: 0,
+              onComplete: resetPlayer
+            }, "end")
+            .to(advsHero, .5, {
+              alpha: 0,
+              onComplete: resetAdvs
+            }, "end")
           break;
         default:
           break;
