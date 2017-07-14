@@ -244,6 +244,7 @@ lobbynsp.on('connection', function (socket) {
               "defenseActions": pJSON.defenseActions,
               "focusDecay": [],
               "isDead": false,
+              "star": 0,
               x: (Math.floor((Math.random() * pJSON.size))),
               y: (Math.floor((Math.random() * pJSON.size))),
               loaded: false
@@ -384,6 +385,11 @@ function gameThread(gameData) {
     var c = 5;
     var turnCount = 0;
     var inactive = 0;
+    var starGrid;
+
+    function setStarGrid(iStarGrid) {
+      starGrid = iStarGrid;
+    }
 
     function findPlayer(value) {
       for (let i = 0; i < players.length; i++) {
@@ -410,27 +416,37 @@ function gameThread(gameData) {
       let starCount = players.length * 2;
       let pLoc = new Array();
 
-      //create an array of player locations for not spawning stars on them
-      for (let i = 0; i < players.length; i++) {
-        if (players[i].isDead == false) {
-          pLoc.push = {
-            'x': players[i].x,
-            'y': players[i].y
-          }
+      //create a grid array
+      let grid = [];
+      for (let j = 0; j < size; j++) {
+        let row = [];
+        for (let r = 0; r < size; r++) {
+          row[r] = new Object();
         }
+        grid[j] = row;
       }
 
-      for (let i = 0; i <= starCount; i++) {
+      for (let i = 0; i < players.length; i++) {
+        grid[players[i].x][players[i].y].player = true;
+      }
+
+      for (let i = 0; i < starCount; i++) {
         let starX = Math.floor((Math.random() * size))
         let starY = Math.floor((Math.random() * size))
-        //for (let i = 0; i < pLoc; i++) {
-        //}
-        let starVar = {
-          'x': starX,
-          'y': starY
-        };
-        ingame.in(gameData._id).emit('newStar', starVar);
+        if (Object.keys(grid[starX][starY]).length == 0) {
+          let starVar = {
+            'x': starX,
+            'y': starY,
+            'id': i
+          };
+          grid[starX][starY].star = i;
+          ingame.in(gameData._id).emit('newStar', starVar);
+        } else {
+          i--;
+        }
       }
+      setStarGrid(grid);
+      console.log(grid);
     }
 
     function gameResults() {
@@ -489,10 +505,10 @@ function gameThread(gameData) {
     function performAttack(attackARAY) {
       let i = 0;
 
-      var fightT = setInterval(singleCombat, 1000)
+      var fightT = setInterval(singleCombat, 2000)
 
       function singleCombat() {
-        c++;
+        c = c + 2;
         let playerIndex = findPlayer(attackARAY[i].playerID)
         let player = players[playerIndex];
         let advsIndex = findPlayer(attackARAY[i].advs)
@@ -503,6 +519,7 @@ function gameThread(gameData) {
         let combat;
         let damage;
         let dodge = advs.cunning - player.cunning;
+        let attackType;
 
         if (dodge < 0) {
           dodge = 0
@@ -519,6 +536,7 @@ function gameThread(gameData) {
               if (advs.defense == "Counter Attack") {
                 combat = "OMG you just played yourself! " + advs.dName + " does " + damage + " to " + player.dName;
                 players[playerIndex].hp -= damage;
+                attackType = "riposte";
               } else {
                 if (hitchance > dodge) {
                   if (advs.defense == "Block") {
@@ -527,9 +545,11 @@ function gameThread(gameData) {
                   damage = Math.ceil(damage);
                   combat = player.dName + "'s " + playerAttack + " does " + damage + " to " + advs.dName;
                   players[advsIndex].hp -= damage;
+                  attackType = "physical";
                 } else {
                   combat = advs.dName + " put on his juke shoes and dodged " + player.dName + "'s attack";
                   damage = 0;
+                  attackType = "dodge";
                 }
               }
               break;
@@ -542,9 +562,11 @@ function gameThread(gameData) {
                 damage = Math.ceil(damage);
                 combat = player.dName + "'s " + playerAttack + " does " + damage + " to " + advs.dName;
                 players[advsIndex].hp -= damage;
+                attackType = "physical";
               } else {
                 combat = advs.dName + " put on his juke shoes and dodged " + player.dName + "'s attack";
                 damage = 0;
+                attackType = "dodge";
               }
               break;
             case "Magic Missile":
@@ -555,6 +577,7 @@ function gameThread(gameData) {
               damage = Math.ceil(damage);
               combat = player.dName + "'s " + playerAttack + " does " + damage + " to " + advs.dName;
               players[advsIndex].hp -= damage;
+              attackType = "magical";
               break;
             case "Retreat":
               combat = player.dName + " runs away";
@@ -563,13 +586,19 @@ function gameThread(gameData) {
               combat = "Something went wrong idk"
               break;
           }
-          ingame.in(gameData._id).emit('attack', combat, player.pID, advs.pID, damage);
           if (players[playerIndex].hp <= 0) {
-            dead(playerIndex);
+            setTimeout(function () {
+              dead(playerIndex);
+            }, 1000);
+            pDied = true;
           }
           if (players[advsIndex].hp <= 0) {
-            dead(advsIndex);
+            setTimeout(function () {
+              dead(advsIndex);
+            }, 1000);
+            aDied = true;
           }
+          ingame.in(gameData._id).emit('attack', combat, player.pID, advs.pID, damage, attackType);
         }
         i++;
         if (i >= (attackARAY.length)) {
@@ -614,6 +643,18 @@ function gameThread(gameData) {
           }
         }
       };
+    }
+
+    function checkStar() {
+      for (let n = 0; n <= (players.length - 1); n++) {
+        let pX = players[n];
+        let starCheck = starGrid[pX.x][pX.y].star;
+        if (pX.inCombat.length == 0 && starCheck != undefined) {
+          ingame.in(gameData._id).emit('getStar', starCheck);
+          starGrid[pX.x][pX.y].star = undefined;
+          players[n].star++;
+        }
+      }
     }
 
     function determineOrder(pData, aData) {
@@ -680,7 +721,7 @@ function gameThread(gameData) {
 
     function turnTime() {
       if (c < 0) {
-        c = 17;
+        c = 18;
 
         ingame.in(gameData._id).emit('endTurn');
 
@@ -747,6 +788,8 @@ function gameThread(gameData) {
               checkForCombat();
               inactive = 0;
 
+              checkStar();
+
               ingame.in(gameData._id).emit('gameTime', 'Taking turn now');
             } else {
               inactive++;
@@ -776,8 +819,13 @@ function gameThread(gameData) {
             'y': t1.y
           }
 
-          var order = (determineOrder(t1, t1.inCombat) + 1);
-          cardOrder = stringifyNumber(order);
+          var order = 0;
+          var cardOrder = "";
+
+          if (t1.inCombat.length > 0) {
+            order = (determineOrder(t1, t1.inCombat) + 1);
+            cardOrder = stringifyNumber(order);
+          }
 
           t1.order = order;
 
@@ -805,6 +853,7 @@ function gameThread(gameData) {
             'strength': t1.strength,
             'magic': t1.magic,
             'cunning': t1.cunning,
+            'star':t1.star,
             'target': t2,
             'order': order,
             'cardinal': cardOrder,
@@ -818,13 +867,16 @@ function gameThread(gameData) {
           ingame.in(gameData._id).emit('setTurn', turnCount, gridData);
         } else {
           clearInterval(t);
+          ingame.in(gameData._id).emit('setTurn', turnCount, gridData);
           ingame.in(gameData._id).emit('gameTime', 'GAME OVER!');
           ingame.in(gameData._id).emit('result', winner);
         }
 
-      } else if (turnCount == 0 && c == 3) {
+      } else if (turnCount == 0) {
         ingame.in(gameData._id).emit('gameTime', 'Setting up game');
-        createStars();
+        if (c == 3) {
+          createStars();
+        };
       } else {
         ingame.in(gameData._id).emit('gameTime', c);
       }

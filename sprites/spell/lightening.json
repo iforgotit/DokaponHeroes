@@ -1,0 +1,26 @@
+{
+
+"images": [
+    "lightening.png"
+],
+
+"frames": [
+    [1, 1, 404, 74, 0, 202, 74],
+    [1, 77, 230, 62, 0, 31, 68],
+    [1, 141, 362, 46, 0, 181, 60],
+    [233, 77, 183, 34, 0, -15, 52]
+],
+
+"animations": {
+    "Lighting1": { "frames": [0] },
+    "Lighting0": { "frames": [1] },
+    "Lighting2": { "frames": [2] },
+    "Lighting3": { "frames": [3] }
+},
+
+"texturepacker": [
+        "SmartUpdateHash: $TexturePacker:SmartUpdate:4c11ec7ef0384a096acdfdaace7e5e84:e5502ab34bf449cca51f1e55a5cb084f:d96d791b2c4bb8113cfa894ee68886a1$",
+        "Created with TexturePacker (https://www.codeandweb.com/texturepacker) for EaselJS"
+]
+
+}
