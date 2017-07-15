@@ -244,7 +244,7 @@ lobbynsp.on('connection', function (socket) {
               "defenseActions": pJSON.defenseActions,
               "focusDecay": [],
               "isDead": false,
-              "star": 0,
+              "star": [],
               x: (Math.floor((Math.random() * pJSON.size))),
               y: (Math.floor((Math.random() * pJSON.size))),
               loaded: false
@@ -421,7 +421,9 @@ function gameThread(gameData) {
       for (let j = 0; j < size; j++) {
         let row = [];
         for (let r = 0; r < size; r++) {
-          row[r] = new Object();
+          row[r] = {
+            star: new Array()
+          };
         }
         grid[j] = row;
       }
@@ -433,14 +435,26 @@ function gameThread(gameData) {
       for (let i = 0; i < starCount; i++) {
         let starX = Math.floor((Math.random() * size))
         let starY = Math.floor((Math.random() * size))
-        if (Object.keys(grid[starX][starY]).length == 0) {
+        if (!grid[starX][starY].player && grid[starX][starY].star.length == 0) {
           let starVar = {
             'x': starX,
             'y': starY,
             'id': i
           };
-          grid[starX][starY].star = i;
-          ingame.in(gameData._id).emit('newStar', starVar);
+          grid[starX][starY].star.push(i);
+
+          //staggers star generation should not exceed 2 second
+          let emitWait;
+          if (i == 0) {
+            emitWait = 0;
+          } else {
+            emitWait = 2000 / i;
+          }
+
+          setTimeout(function () {
+            ingame.in(gameData._id).emit('newStar', starVar);
+          }, emitWait)
+
         } else {
           i--;
         }
@@ -450,10 +464,15 @@ function gameThread(gameData) {
 
     function gameResults() {
       let alive = new Array();
+      let starGoal = (((players.length * 2) / 4) * 3);
 
       for (let i = 0; i < players.length; i++) {
-        if (players[i].isDead == false) {
-          alive.push(players[i].dName);
+        let player = players[i];
+        if (player.star.length >= starGoal) {
+          return player.dName + " wins!";
+        }
+        if (player.isDead == false) {
+          alive.push(player.dName);
         }
       }
 
@@ -467,7 +486,7 @@ function gameThread(gameData) {
     }
 
     function updatePlayerMoves(moveTurn) {
-      for (let i = 0; i <= (moveTurn.length - 1); i++) {
+      for (let i = 0; i < moveTurn.length; i++) {
         let player = players[findPlayer(moveTurn[i].playerID)];
         player.x = moveTurn[i].target.x;
         player.y = moveTurn[i].target.y;
@@ -477,10 +496,10 @@ function gameThread(gameData) {
 
     function setDefense(iDefense) {
       //for each player
-      for (let i = 0; i <= (players.length - 1); i++) {
+      for (let i = 0; i < players.length; i++) {
         //check the defense array
         players[i].defense = undefined;
-        for (let j = 0; j <= (iDefense.length - 1); j++) {
+        for (let j = 0; j < iDefense.length; j++) {
           //if that player is in the defense array
           if (players[i].pID == iDefense[j].playerID) {
             //if that array is not empty
@@ -586,15 +605,11 @@ function gameThread(gameData) {
               break;
           }
           if (players[playerIndex].hp <= 0) {
-            setTimeout(function () {
-              dead(playerIndex);
-            }, 1000);
+            dead(playerIndex);
             pDied = true;
           }
           if (players[advsIndex].hp <= 0) {
-            setTimeout(function () {
-              dead(advsIndex);
-            }, 1000);
+            dead(advsIndex);
             aDied = true;
           }
           ingame.in(gameData._id).emit('attack', combat, player.pID, advs.pID, damage, attackType);
@@ -611,10 +626,14 @@ function gameThread(gameData) {
       let rip = players[playerIndex].dName + " is no longer with us";
       ingame.in(gameData._id).emit('died', rip, players[playerIndex].pID);
       players[playerIndex].inCombat = [];
+      let starCount = players[playerIndex].star.length;
+      for (let i = 0; i < starCount; i++) {
+        dropStar(playerIndex);
+      }
     }
 
     function checkForCombat() {
-      for (let n = 0; n <= (players.length - 1); n++) {
+      for (let n = 0; n < players.length; n++) {
         let pX = players[n];
         let pXID = players[n].pID;
 
@@ -626,7 +645,7 @@ function gameThread(gameData) {
 
         pX.inCombat = new Array();
         if (pX.isDead == false) {
-          for (let i = 0; i <= (players.length - 1); i++) {
+          for (let i = 0; i < players.length; i++) {
             if (i != n) {
               let pY = players[i];
               let pYID = players[i].pID;
@@ -645,15 +664,31 @@ function gameThread(gameData) {
     }
 
     function checkStar() {
-      for (let n = 0; n <= (players.length - 1); n++) {
+      for (let n = 0; n < players.length; n++) {
         let pX = players[n];
         let starCheck = starGrid[pX.x][pX.y].star;
-        if (pX.inCombat.length == 0 && starCheck != undefined) {
-          ingame.in(gameData._id).emit('getStar', starCheck);
-          starGrid[pX.x][pX.y].star = undefined;
-          players[n].star++;
+        let starCount = starCheck.length;
+        if (pX.inCombat.length == 0 && starCount != 0 && pX.isDead == false) {
+          for (let i = 0; i < starCount; i++) {
+            let iStar = starGrid[pX.x][pX.y].star.shift();
+            ingame.in(gameData._id).emit('getStar', iStar);
+            players[n].star.push(iStar);
+          }
         }
       }
+    }
+
+    function dropStar(playerIndex) {
+      let pLocX = players[playerIndex].x;
+      let pLocY = players[playerIndex].y;
+      let iStar = players[playerIndex].star.shift();
+      starGrid[pLocX][pLocY].star.push(iStar);
+      let starVar = {
+        'x': pLocX,
+        'y': pLocY,
+        'id': iStar
+      };
+      ingame.in(gameData._id).emit('dropStar', starVar);
     }
 
     function determineOrder(pData, aData) {
@@ -664,7 +699,7 @@ function gameThread(gameData) {
         'init': findPlayerInit(pData.pID)
       })
 
-      for (let i = 0; i <= (aData.length - 1); i++) {
+      for (let i = 0; i < aData.length; i++) {
         cArray.push({
           'pID': aData[i],
           'init': findPlayerInit(aData[i])
@@ -735,7 +770,7 @@ function gameThread(gameData) {
               let attackARAY = new Array();
               let defendARAY = new Array();
 
-              for (let i = 0; i <= (turnDB.length - 1); i++) {
+              for (let i = 0; i < turnDB.length; i++) {
                 switch (turnDB[i].actionType) {
                   case "move":
                     moveARAY.push({
@@ -760,6 +795,7 @@ function gameThread(gameData) {
                   case "retreat":
                     let xRetreat = Math.floor((Math.random() * turnDB[i].gridSize));
                     let yRetreat = Math.floor((Math.random() * turnDB[i].gridSize));
+                    dropStar(findPlayer(turnDB[i].playerID));
                     moveARAY.push({
                       'playerID': turnDB[i].playerID,
                       'stageX': xRetreat * 100,
@@ -787,8 +823,6 @@ function gameThread(gameData) {
               checkForCombat();
               inactive = 0;
 
-              checkStar();
-
               ingame.in(gameData._id).emit('gameTime', 'Taking turn now');
             } else {
               inactive++;
@@ -807,9 +841,11 @@ function gameThread(gameData) {
       } else if (c == 15) {
         ingame.in(gameData._id).emit('gameTime', c);
 
+        checkStar();
+
         let gridData = new Array();
 
-        for (let i = 0; i <= (players.length - 1); i++) {
+        for (let i = 0; i < players.length; i++) {
           let t1 = players[i];
           let t2;
 
@@ -830,7 +866,7 @@ function gameThread(gameData) {
 
           let combatin = new Array();
 
-          for (let a = 0; a <= (t1.inCombat.length - 1); a++) {
+          for (let a = 0; a < t1.inCombat.length; a++) {
             let advs = players[findPlayer(t1.inCombat[a])];
             if (advs.isDead == false) {
               let advsData = {
@@ -852,7 +888,7 @@ function gameThread(gameData) {
             'strength': t1.strength,
             'magic': t1.magic,
             'cunning': t1.cunning,
-            'star':t1.star,
+            'star': t1.star.length,
             'target': t2,
             'order': order,
             'cardinal': cardOrder,

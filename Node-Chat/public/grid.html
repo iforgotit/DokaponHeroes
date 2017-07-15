@@ -71,6 +71,7 @@
     var queue;
     var stage = new createjs.Stage("battlefield");
     var bfgridxy;
+    var afterGrass;
     var socket = io('/ingame');
     var players;
     var turnSelected = undefined;
@@ -80,6 +81,7 @@
     // set the size of the stage, this should get nested in a div in case the stage gets massive
     function setbfgridxy(size) {
       bfgridxy = size;
+      afterGrass = size * size;
       var canvas = document.getElementById("battlefield");
       if (size > 5) {
         canvas.height = (size * 100) + 20;
@@ -194,6 +196,11 @@
       }, {
         id: "star",
         src: "../../assets/sprites/star.json",
+        type: "spritesheet",
+        crossOrigin: true
+      }, {
+        id: "lightening",
+        src: "../../assets/sprites/lightening.json",
         type: "spritesheet",
         crossOrigin: true
       }, {
@@ -615,16 +622,22 @@
     }
 
     socket.on("died", function (combat, pX) {
-      document.getElementById("z").innerHTML += combat + "<br>";
-      let playerBrawl = stage.getChildByName("b" + pX);
-      let playerHero = stage.getChildByName(pX);
-      let playerName = stage.getChildByName("n" + pX);
 
-      playerBrawl.alpha = 0;
-      playerHero.alpha = 1;
-      playerName.alpha = 1;
+      setTimeout(deadAction, 1500);
 
-      playerHero.gotoAndPlay('Die');
+      function deadAction() {
+        document.getElementById("z").innerHTML += combat + "<br>";
+        let playerBrawl = stage.getChildByName("b" + pX);
+        let playerHero = stage.getChildByName(pX);
+        let playerName = stage.getChildByName("n" + pX);
+
+        playerBrawl.alpha = 0;
+        playerHero.alpha = 1;
+        playerName.alpha = 1;
+
+        playerHero.gotoAndPlay('Die');
+      }
+
     });
 
     socket.on('newStar', function (starLoc) {
@@ -633,17 +646,47 @@
       star.x = (starLoc.x * 100) + 10;
       star.y = (starLoc.y * 100) + 10;
       star.name = "star" + starLoc.id;
-      stage.addChildAt(star, 16);
+      stage.addChildAt(star, afterGrass);
     });
+
+    socket.on('dropStar', function (starLoc) {
+      let starSprite = stage.getChildByName("star" + starLoc.id);
+      starSprite.x = (starLoc.x * 100) + 10;
+      starSprite.y = (starLoc.y * 100) + 10;
+
+      TweenMax.fromTo(starSprite, 1, {
+        scaleY: 1,
+        y: starSprite.y
+      }, {
+        scaleY: 0.3,
+        y: starSprite.y + 80,
+        yoyo: true,
+        repeat: 1,
+        delay:2,
+        onComplete: function () {
+          stage.setChildIndex(starSprite, afterGrass);
+        },
+        onStart: function () {
+          starSprite.alpha = 1;
+        }
+      })
+    })
 
     socket.on('getStar', function (starID) {
       let starSprite = stage.getChildByName("star" + starID);
-      stage.setChildIndex(starSprite, stage.getNumChildren() - 1);
+
       TweenMax.to(starSprite, 1, {
-        scale: 0.1,
-        y: starSprite.y - 20,
+        scaleX: 0.1,
+        scaleY: 0.1,
+        y: starSprite.y + 50,
+        x: starSprite.x + 40,
+        onStart: function () {
+          stage.setChildIndex(starSprite, stage.getNumChildren() - 1);
+        },
         onComplete: function () {
-          stage.removeChild(starSprite)
+          starSprite.alpha = 0;
+          starSprite.scaleX = 1;
+          starSprite.scaleY = 1;
         }
       })
     });
