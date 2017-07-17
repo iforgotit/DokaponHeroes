@@ -10,6 +10,7 @@ var bcrypt = require('bcrypt');
 
 var numUsersLobby = 0;
 var url = 'mongodb://localhost:27017/dkmmc';
+var tourneyMode = false;
 
 var WaitForMore = Date.now() + 1000;
 
@@ -37,7 +38,6 @@ app.use(express.static('public'));
 io.on('connection', function (socket) {
 
   socket.on('createUser', function (user) {
-
     // Use connect method to connect to the server
     MongoClient.connect(url, function (err, db) {
       assert.equal(null, err);
@@ -122,6 +122,36 @@ io.on('connection', function (socket) {
     };
   });
 
+  socket.on('saveSettings', function (settingsJSON) {
+    tourneyMode = settingsJSON.tourneyMode;
+    socket.emit('saved');
+  });
+
+  socket.on('permissions', function (userID) {
+
+    // Use connect method to connect to the server
+    MongoClient.connect(url, function (err, db) {
+      assert.equal(null, err);
+
+      findUserPermissions(db, userID, function () {
+        db.close();
+      });
+    });
+
+    var findUserPermissions = function (db, iUserID, callback) {
+      // Get the users collection
+      var collection = db.collection('users');
+      // Find some user
+      collection.find({
+        _id: ObjectId(iUserID)
+      }).toArray(function (err, user) {
+        assert.equal(err, null);
+        socket.emit('permission', user[0]);
+        callback();
+      });
+    };
+  });
+
   socket.on('newUser', function () {
     io.emit('attendance');
   });
@@ -152,6 +182,33 @@ lobbynsp.on('connection', function (socket) {
 
   socket.on('newUser', function () {
     lobbynsp.emit('attendance');
+  });
+
+  socket.on('checkAdmin', function (userID) {
+
+    // Use connect method to connect to the server
+    MongoClient.connect(url, function (err, db) {
+      assert.equal(null, err);
+
+      findUserPermissions(db, userID, function () {
+        db.close();
+      });
+    });
+
+    var findUserPermissions = function (db, iUserID, callback) {
+      // Get the users collection
+      var collection = db.collection('users');
+      // Find some user
+      collection.find({
+        _id: ObjectId(iUserID)
+      }).toArray(function (err, user) {
+        assert.equal(err, null);
+        if(user[0].isAdmin == "true"){
+          socket.emit("admin");
+        }
+        callback();
+      });
+    };
   });
 
   socket.on('checkin', function (dName, role) {
@@ -305,7 +362,9 @@ lobbynsp.on('connection', function (socket) {
     var status;
     var timeLeft = Math.round((getWaitforMore() - Date.now()) / 1000);
 
-    if (numUsersLobby == 0) {
+    if (tourneyMode == true) {
+      status = "Tournament Mode Enabled Wait for Administrator";
+    } else if (numUsersLobby == 0) {
       status = "Dead";
     } else if (numUsersLobby == 1) {
       status = "Not Enough Players (" + numUsersLobby + ")";
@@ -443,12 +502,12 @@ function gameThread(gameData) {
           };
           grid[starX][starY].star.push(i);
 
-          //staggers star generation should not exceed 2 second
+          //staggers star generation should not exceed 1 second
           let emitWait;
           if (i == 0) {
             emitWait = 0;
           } else {
-            emitWait = 2000 / i;
+            emitWait = Math.abs((1000 / i) - 1000);
           }
 
           setTimeout(function () {

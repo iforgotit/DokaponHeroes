@@ -119,6 +119,7 @@
             var chat = document.getElementById("lichat");
             var chatBox = document.getElementById("pnlChat");
             var scrolled = false;
+            var admin = false;
 
             socket.on('chat', function (JSONmsg) {
                 var chat = document.getElementById("lichat");
@@ -153,7 +154,6 @@
             });
 
             socket.on('attendance', function () {
-
                 if (getSeletedClass() !== undefined) {
                     socket.emit('checkin', sessionStorage.dName, getSeletedClass());
                 } else {
@@ -173,8 +173,13 @@
                 userlist.appendChild(liElement);
             });
 
+            socket.on('admin', function () {
+                admin = true;
+            });
+
             socket.on('status', function (status) {
-                if (status == "Start Game") {
+                if (status == "Start Game" || (status == "Tournament Mode Enabled Wait for Administrator" &&
+                        admin == true)) {
                     document.getElementById("btnStartGame").classList.remove('disabled');
                     document.getElementById("btnStartGame").disabled = false;
                 } else {
@@ -264,6 +269,7 @@
                 var wheight = (window.innerHeight - 200) + "px";
                 document.getElementById("pnlChat").style.height = wheight;
                 document.getElementById("pnlUsers").style.height = wheight;
+                socket.emit('checkAdmin', sessionStorage.id);
             }
 
             function pickClass(btnClass, sltClass) {

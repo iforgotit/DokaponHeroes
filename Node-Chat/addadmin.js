@@ -17,14 +17,13 @@ MongoClient.connect(url, function (err, db) {
 
 var findDocuments = function (db, callback) {
   // Get the documents collection
-  var collection = db.collection('settings');
+  var collection = db.collection('users');
   // Find some documents
-  collection.find({
-        game: "TOH"
-  }).toArray(function (err, docs) {
-    assert.equal(err, null);
-    console.log("Found the following records");
-    console.log(JSON.stringify(docs));
-    callback(docs);
-  });
+  collection.update({
+    email: "nmorales@flourishdev.com"
+  }, {
+    $set: {
+      isAdmin: "true"
+    }
+  })
 }
