@@ -11,7 +11,7 @@
         <array>
             <struct type="AutoSDSettings">
                 <key>scale</key>
-                <double>0.15</double>
+                <double>0.25</double>
                 <key>extension</key>
                 <string></string>
                 <key>spriteFilter</key>
@@ -177,7 +177,7 @@
         <key>globalSpriteSettings</key>
         <struct type="SpriteSettings">
             <key>scale</key>
-            <double>0.9375</double>
+            <double>1</double>
             <key>scaleMode</key>
             <enum type="ScaleMode">Smooth</enum>
             <key>extrude</key>
@@ -269,22 +269,6 @@
                 <key>scale9FromFile</key>
                 <false/>
             </struct>
-            <key type="filename">../../../Downloads/Skull Warriors 2D Game Character Sprites 92/Character Sprites/Skull-3/Lighting0.png</key>
-            <key type="filename">../../../Downloads/Skull Warriors 2D Game Character Sprites 92/Character Sprites/Skull-3/Lighting1.png</key>
-            <key type="filename">../../../Downloads/Skull Warriors 2D Game Character Sprites 92/Character Sprites/Skull-3/Lighting2.png</key>
-            <key type="filename">../../../Downloads/Skull Warriors 2D Game Character Sprites 92/Character Sprites/Skull-3/Lighting3.png</key>
-            <struct type="IndividualSpriteSettings">
-                <key>pivotPoint</key>
-                <point_f>0.5,1</point_f>
-                <key>scale9Enabled</key>
-                <false/>
-                <key>scale9Borders</key>
-                <rect>485,88,969,177</rect>
-                <key>scale9Paddings</key>
-                <rect>485,88,969,177</rect>
-                <key>scale9FromFile</key>
-                <false/>
-            </struct>
         </map>
         <key>fileList</key>
         <array>
@@ -326,10 +310,6 @@
             <filename>../../../Downloads/Skull Warriors 2D Game Character Sprites 92/Character Sprites/Skull-3/Jump_003.png</filename>
             <filename>../../../Downloads/Skull Warriors 2D Game Character Sprites 92/Character Sprites/Skull-3/Jump_004.png</filename>
             <filename>../../../Downloads/Skull Warriors 2D Game Character Sprites 92/Character Sprites/Skull-3/Jump_005.png</filename>
-            <filename>../../../Downloads/Skull Warriors 2D Game Character Sprites 92/Character Sprites/Skull-3/Lighting0.png</filename>
-            <filename>../../../Downloads/Skull Warriors 2D Game Character Sprites 92/Character Sprites/Skull-3/Lighting1.png</filename>
-            <filename>../../../Downloads/Skull Warriors 2D Game Character Sprites 92/Character Sprites/Skull-3/Lighting2.png</filename>
-            <filename>../../../Downloads/Skull Warriors 2D Game Character Sprites 92/Character Sprites/Skull-3/Lighting3.png</filename>
             <filename>../../../Downloads/Skull Warriors 2D Game Character Sprites 92/Character Sprites/Skull-3/Run_000.png</filename>
             <filename>../../../Downloads/Skull Warriors 2D Game Character Sprites 92/Character Sprites/Skull-3/Run_001.png</filename>
             <filename>../../../Downloads/Skull Warriors 2D Game Character Sprites 92/Character Sprites/Skull-3/Run_002.png</filename>

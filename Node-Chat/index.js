@@ -203,7 +203,7 @@ lobbynsp.on('connection', function (socket) {
         _id: ObjectId(iUserID)
       }).toArray(function (err, user) {
         assert.equal(err, null);
-        if(user[0].isAdmin == "true"){
+        if (user[0].isAdmin == "true") {
           socket.emit("admin");
         }
         callback();
@@ -292,7 +292,7 @@ lobbynsp.on('connection', function (socket) {
             players: {
               pID: pJSON.pID,
               dName: pJSON.dName,
-              pClass: pJSON.pClass,
+              "pClass": pJSON.pClass,
               "hp": pJSON.hp,
               "strength": pJSON.strength,
               "magic": pJSON.magic,
@@ -507,7 +507,7 @@ function gameThread(gameData) {
           if (i == 0) {
             emitWait = 0;
           } else {
-            emitWait = Math.abs((1000 / i) - 1000);
+            emitWait = Math.abs((2000 / i) - 2000);
           }
 
           setTimeout(function () {
@@ -582,13 +582,14 @@ function gameThread(gameData) {
     function performAttack(attackARAY) {
       let i = 0;
 
-      var fightT = setInterval(singleCombat, 2000)
+      //var fightT = setInterval(singleCombat, 6500);
+
+      singleCombat();
 
       function singleCombat() {
-        c = c + 2;
         let playerIndex = findPlayer(attackARAY[i].playerID)
         let player = players[playerIndex];
-        let advsIndex = findPlayer(attackARAY[i].advs)
+        let advsIndex = findPlayer(attackARAY[i].advs);
         let advs = players[advsIndex];
 
         let playerAttack = player.attackActions[attackARAY[i].attackAction];
@@ -671,11 +672,26 @@ function gameThread(gameData) {
             dead(advsIndex);
             aDied = true;
           }
-          ingame.in(gameData._id).emit('attack', combat, player.pID, advs.pID, damage, attackType);
+          let pJSON = {
+            "pClass": player.pClass,
+            x: player.x,
+            y: player.y
+          }
+          let aJSON = {
+            "pClass": advs.pClass,
+            x: advs.x,
+            y: advs.y
+          }
+          ingame.in(gameData._id).emit('attack', combat, pJSON, aJSON, damage, attackType);
         }
         i++;
         if (i >= (attackARAY.length)) {
-          clearInterval(fightT);
+          //clearInterval(fightT);
+          setTimeout(function () {
+            t = setInterval(turnTime, 1000);
+          }, 5000);
+        } else {
+          setTimeout(singleCombat, 5000);
         }
       }
     }
@@ -813,8 +829,9 @@ function gameThread(gameData) {
 
 
     function turnTime() {
+      c--;
       if (c < 0) {
-        c = 18;
+        c = 16;
 
         ingame.in(gameData._id).emit('endTurn');
 
@@ -872,6 +889,7 @@ function gameThread(gameData) {
               setDefense(defendARAY);
 
               if (attackARAY.length != 0) {
+                clearInterval(t);
                 performAttack(attackARAY);
               }
 
@@ -974,7 +992,6 @@ function gameThread(gameData) {
       } else {
         ingame.in(gameData._id).emit('gameTime', c);
       }
-      c--;
     }
 
     var getTurn = function (db, callback) {

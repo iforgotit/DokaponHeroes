@@ -15,8 +15,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.20.2/TweenMax.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.20.2/TimelineMax.min.js"></script>
   <script src="https://code.createjs.com/preloadjs-0.6.2.min.js"></script>
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 </head>
 <!-- init checked if they are logged in, starts the loading animation, and starts the asset loading -->
 
@@ -77,6 +75,7 @@
     var turnSelected = undefined;
     var playerLocation = new Object();
     var turnCount;
+    var heroScale = 0.55;
 
     // set the size of the stage, this should get nested in a div in case the stage gets massive
     function setbfgridxy(size) {
@@ -194,6 +193,9 @@
         id: "grass",
         src: "../../assets/img/grass.png"
       }, {
+        id: "forest",
+        src: "../../assets/img/forest.png"
+      }, {
         id: "star",
         src: "../../assets/sprites/star.json",
         type: "spritesheet",
@@ -302,6 +304,8 @@
           var hero = new createjs.Sprite(spriteSheet, "Stand");
           hero.x = (heroData.x * 100) + 50;
           hero.y = (heroData.y * 100) + 95;
+          hero.scaleX = heroScale;
+          hero.scaleY = heroScale;
           hero.type = "hero";
           hero.name = heroData.pID;
 
@@ -430,11 +434,11 @@
       let eachHero = stage.getChildByName(PlayerTurnData.playerID);
       let eachNameplate = stage.getChildByName("n" + PlayerTurnData.playerID);
       if (eachHero.x > PlayerTurnData.stageX) {
-        eachHero.scaleX = 1;
+        eachHero.scaleX = heroScale;
         eachHero.gotoAndPlay("Walk");
       } else {
         eachHero.gotoAndPlay("Walk");
-        eachHero.scaleX = -1;
+        eachHero.scaleX = -heroScale;
       }
 
       TweenMax.to(eachHero, 1, {
@@ -694,178 +698,183 @@
 
     socket.on("attack", function (combat, pX, pY, damage, attackType) {
       document.getElementById("z").innerHTML += combat + "<br>";
-      let playerBrawl = stage.getChildByName("b" + pX);
-      let advsBrawl = stage.getChildByName("b" + pY);
-      let playerHero = stage.getChildByName(pX);
-      let advsHero = stage.getChildByName(pY);
-      let playerName = stage.getChildByName("n" + pX);
-      let advsName = stage.getChildByName("n" + pY);
 
-      let text = new createjs.Text(damage, "bold 32px Arial", "#ff7700");
-      text.x = playerHero.x;
-      text.y = playerHero.y;
+      let dmgText = new createjs.Text(damage, "bold 32px Arial", "#ff7700");
+      dmgText.x = pY.x;
+      dmgText.y = pY.y;
 
-      stage.addChild(text);
+      let cbContainer = new createjs.Container();
+      let bgForest = queue.getResult("forest");
+      let forest = new createjs.Bitmap(bgForest);
+      let leftRect = new createjs.Shape();
+      let rightRect = new createjs.Shape();
+      let topRect = new createjs.Shape();
+      let botRect = new createjs.Shape();
 
-      TweenMax.to(text, 1.5, {
-        x: playerHero.x + 50,
-        y: playerHero.y + 50,
-        ease: Bounce.easeOut,
-        onComplete: removeText
-      });
+      let bf = document.getElementById("divBattlefield");
 
-      function removeText() {
-        stage.removeChild(text);
-      };
+      let pnlHeight = bf.offsetHeight;
+      let pnlWidth = bf.offsetWidth;
+      let bfHeight = bf.scrollHeight;
+      let bfWidth = bf.scrollWidth;
 
-      let pHOX = playerHero.x;
-      let pNOX = playerName.x;
-      let aHOX = advsHero.x;
-      let aNOX = advsName.x;
+      let zoomLocX = (pX.x * 100) + 50;
+      let zoomLocY = (pX.y * 100) + 50;
 
-      let pHOY = playerHero.y;
-      let aHOY = advsHero.y;
+      let pSpriteSheet;
+      switch (pX.pClass) {
+        case "Magii":
+          pSpriteSheet = queue.getResult("magicData");
+          break;
+        case "Warrior":
+          pSpriteSheet = queue.getResult("mightData");
+          break;
+        case "Rogue":
+          pSpriteSheet = queue.getResult("cunningData");
+          break;
+      }
+      var pHero = new createjs.Sprite(pSpriteSheet, "Stand");
 
-      playerHero.x = pHOX + 35;
-      playerName.x = pNOX + 35;
-      advsHero.x = aHOX - 35;
-      advsName.x = aNOX - 35;
+      let aSpriteSheet;
+      switch (pY.pClass) {
+        case "Magii":
+          aSpriteSheet = queue.getResult("magicData");
+          break;
+        case "Warrior":
+          aSpriteSheet = queue.getResult("mightData");
+          break;
+        case "Rogue":
+          aSpriteSheet = queue.getResult("cunningData");
+          break;
+      }
+      var aHero = new createjs.Sprite(aSpriteSheet, "Stand");
 
-      playerHero.scaleX = 1;
-      advsHero.scaleX = -1;
-      playerHero.scaleY = 1;
-      advsHero.scaleY = 1;
+      leftRect.graphics.beginFill("#000000").drawRect(0, 0, bfHeight, bfWidth);
+      leftRect.x = -(bfWidth);
+      leftRect.y = 0;
 
-      playerBrawl.alpha = 0;
-      advsBrawl.alpha = 0;
-      playerHero.alpha = 1;
-      advsHero.alpha = 1;
-      playerName.alpha = 1;
-      advsName.alpha = 1;
+      // rightRect.graphics.beginFill("#000000").drawRect(0, 0, bfHeight, bfWidth);
+      // rightRect.x = bfWidth;
+      // rightRect.y = 0;
 
-      var combatTL = new TimelineMax();
-      combatTL.add("end", 1);
+      // topRect.graphics.beginFill("#000000").drawRect(0, 0, bfHeight, bfWidth);
+      // topRect.x = 0;
+      // topRect.y = 0;
+
+      // botRect.graphics.beginFill("#000000").drawRect(0, 0, bfHeight, bfWidth);
+      // botRect.x = 0;
+      // botRect.y = bfHeight;
+
+      let combatScale = Number(document.getElementById("battlefield").offsetWidth / 1000).toFixed(2);
+      if (combatScale > 1) {
+        combatScale = 1;
+      }
+
+      forest.scaleX = combatScale;
+      forest.scaleY = combatScale;
+      pHero.scaleX = -combatScale;
+      pHero.scaleY = combatScale;
+      aHero.scaleX = -combatScale;
+      aHero.scaleY = combatScale;
+
+      pHero.y = 675 * combatScale;
+      aHero.y = 675 * combatScale;
+
+      pHero.x = 200 * combatScale;
+      aHero.x = 800 * combatScale;
+
+      cbContainer.addChild(forest);
+      cbContainer.addChild(leftRect);
+      cbContainer.addChild(pHero, aHero);
+
+      //cbContainer.addChild(leftRect,rightRect,topRect,botRect);
+
+      stage.addChild(cbContainer);
+      stage.update();
+
+      let combatTL = new TimelineMax();
+      let animAttack;
+      combatTL.add("wipeEnd", 0);
 
       switch (attackType) {
         case "physical":
-          combatTL.to(playerHero, 1, {
-              onStart: function () {
-                playerHero.gotoAndPlay("Attack");
-              }
-            })
-            .to(advsHero, 1, {
-              onStart: function () {
-                advsHero.gotoAndPlay("Hurt");
-              }
-            }, 0)
-            .to(playerHero, .5, {
-              alpha: 0,
-              onComplete: resetPlayer
-            }, "end")
-            .to(advsHero, .5, {
-              alpha: 0,
-              onComplete: resetAdvs
-            }, "end")
+          combatTL.add(animPhyical());
           break;
         case "magical":
-          var lighteningSprite = queue.getResult("lightening");
-          let lightening = new createjs.Sprite(lighteningSprite, "lighting");
-          lightening.x = pHOX;
-          lightening.y = pHOY - 50;
-          lightening.scaleX = .15;
-          lightening.scaleY = .15;
-          stage.addChild(lightening);
-          combatTL.to(playerHero, 1, {
-              onStart: function () {
-                playerHero.gotoAndPlay("Attack");
-              }
-            })
-            .to(advsHero, 1, {
-              onStart: function () {
-                advsHero.gotoAndPlay("Hurt");
-              }
-            }, 0)
-            .to(lightening, 1, {
-              x: aHOX,
-              y: aHOY - 50,
-              onComplete: function () {
-                stage.removeChild(lightening);
-              }
-            })
-            .to(playerHero, .5, {
-              alpha: 0,
-              onComplete: resetPlayer
-            }, "end")
-            .to(advsHero, .5, {
-              alpha: 0,
-              onComplete: resetAdvs
-            }, "end")
+          animLightening();
           break;
         case "dodge":
-          combatTL.to(playerHero, 1, {
-              onStart: function () {
-                playerHero.gotoAndPlay("Attack");
-              }
-            })
-            .fromTo(advsHero, .5, {}, {
-              x: aHOX - 50,
-              onStart: function () {
-                advsHero.gotoAndPlay("run");
-              },
-              yoyo: true,
-              repeat: 1
-            }, 0)
-            .to(playerHero, .5, {
-              alpha: 0,
-              onComplete: resetPlayer
-            }, "end")
-            .to(advsHero, .5, {
-              alpha: 0,
-              onComplete: resetAdvs
-            }, "end")
+          animDodge();
           break;
         case "riposte":
-          combatTL.to(playerHero, 1, {
-              onStart: function () {
-                playerHero.gotoAndPlay("Attack");
-              }
-            })
-            .to(advsHero, 1, {
-              onStart: function () {
-                advsHero.gotoAndPlay("Hurt");
-              }
-            }, 0)
-            .to(playerHero, .5, {
-              alpha: 0,
-              onComplete: resetPlayer
-            }, "end")
-            .to(advsHero, .5, {
-              alpha: 0,
-              onComplete: resetAdvs
-            }, "end")
+          animRiposte();
           break;
         default:
           break;
       }
 
-      function resetAdvs() {
-        advsBrawl.alpha = 1;
-        advsHero.scaleX = 1;
-        advsHero.scaleY = 1;
-        advsHero.x = aHOX;
-        advsHero.y = aHOY;
-        advsName.alpha = 0;
-        advsName.x = aNOX;
+      combatTL.add(clearStage, 4);
+
+      // combatTL.fromTo(leftRect, 2,{}, {
+      //   x: x+zoomLocX,
+      //   ease: Power4.easeOut,
+      //   repeat: 1,
+      //   yoyo: true
+      // }, 0);
+
+      // combatTL.to(rightRect, 1, {
+      //   x: zoomLocX,
+      //   ease: Power4.easeOut
+      // }, 0);
+
+      // combatTL.to(topRect, 1, {
+      //   x: zoomLocX,
+      //   ease: Power4.easeOut
+      // }, 0);
+
+      // combatTL.to(botRect, 1, {
+      //   x: zoomLocX,
+      //   ease: Power4.easeOut
+      // }, 0);
+
+      function animPhyical() {
+        animAttack = TweenMax.to(pHero, 3, {
+          x: (aHero.x - 50),
+          onStart: function () {
+            pHero.gotoAndPlay("Run");
+          },
+          onComplete: function () {
+            pHero.gotoAndPlay("Attack");
+            aHero.gotoAndPlay("Hurt");
+          }
+        }, "wipeEnd");
+        return animAttack;
       }
 
-      function resetPlayer() {
-        playerBrawl.alpha = 1;
-        playerHero.scaleX = 1;
-        playerHero.scaleY = 1;
-        playerHero.x = pHOX;
-        playerHero.y = pHOY;
-        playerName.alpha = 0;
-        playerName.x = pNOX;
+      function animLightening() {
+        // var lighteningSprite = queue.getResult("lightening");
+        // let lightening = new createjs.Sprite(lighteningSprite, "lighting");
+        // lightening.x = pHOX;
+        // lightening.y = pHOY - 50;
+        // lightening.scaleX = .15;
+        // lightening.scaleY = .15;
+      }
+
+      function animDodge() {
+
+      }
+
+      function animRiposte() {
+
+      }
+
+      function clearStage() {
+        TweenMax.to(cbContainer, 1, {
+          alhpa: 0,
+          onComplete: function () {
+            stage.removeChild(cbContainer);
+          }
+        })
       }
     });
 

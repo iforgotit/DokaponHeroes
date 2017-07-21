@@ -11,7 +11,7 @@
         <array>
             <struct type="AutoSDSettings">
                 <key>scale</key>
-                <double>0.15</double>
+                <double>0.25</double>
                 <key>extension</key>
                 <string></string>
                 <key>spriteFilter</key>
@@ -177,7 +177,7 @@
         <key>globalSpriteSettings</key>
         <struct type="SpriteSettings">
             <key>scale</key>
-            <double>0.9375</double>
+            <double>1</double>
             <key>scaleMode</key>
             <enum type="ScaleMode">Smooth</enum>
             <key>extrude</key>

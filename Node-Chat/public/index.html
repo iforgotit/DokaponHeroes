@@ -11,6 +11,10 @@
 
   <!-- Bootstrap core CSS -->
   <link href="../../assets/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://code.createjs.com/easeljs-0.8.2.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.20.2/TweenMax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.20.2/TimelineMax.min.js"></script>
+  <script src="https://code.createjs.com/preloadjs-0.6.2.min.js"></script>
 
 </head>
 
@@ -41,10 +45,10 @@
   </div><br>
   <div class="container col-md-2"></div>
   <div class="col-md-4 alert alert-danger" id="z" role="alert" hidden>
-
   </div>
+  <!-- battlefield is the stage -->
+  <canvas id="battlefield" width="500" height="500" onclick="enableKB()"></canvas>
 
-  <!-- /container -->
   <script src="/socket.io/socket.io.js"></script>
   <script>
     var socket = io();
@@ -65,6 +69,14 @@
     });
   </script>
   <script>
+    var stage = new createjs.Stage("battlefield");
+    var queue = new createjs.LoadQueue(true);
+    var magicHero;
+
+    var KEYCODE_LEFT = 37,
+      KEYCODE_RIGHT = 39,
+      KEYCODE_UP = 38;
+
     //executed on clicking the login button
     function login(e) {
       e.preventDefault();
@@ -120,6 +132,127 @@
         window.location.href = 'landing.html';
         return false;
       }
+
+      loadAssets();
+
+      var bf = document.getElementById("battlefield");
+      bf.width = window.innerWidth;
+
+      createjs.Ticker.setFPS(30);
+      createjs.Ticker.on("tick", handleTick);
+
+      setTimeout(function () {
+        funimation();
+      }, 8000);
+    }
+
+    function handleTick() {
+      stage.update();
+    }
+
+    function loadAssets() {
+      queue.loadManifest([{
+        id: "mightData",
+        src: "../../assets/sprites/might.json",
+        type: "spritesheet",
+        crossOrigin: true
+      }, {
+        id: "magicData",
+        src: "../../assets/sprites/magic.json",
+        type: "spritesheet",
+        crossOrigin: true
+      }, {
+        id: "cunningData",
+        src: "../../assets/sprites/cunning.json",
+        type: "spritesheet",
+        crossOrigin: true
+      }]);
+    }
+
+    function funimation() {
+      let mightSprite = queue.getResult("mightData");
+      let magicSprite = queue.getResult("magicData");
+      let cunningSprite = queue.getResult("cunningData");
+
+      let mightHero = new createjs.Sprite(mightSprite, "Stand");
+      magicHero = new createjs.Sprite(magicSprite, "Stand");
+      let cunningHero = new createjs.Sprite(cunningSprite, "Stand");
+
+      let iScaleY = Number(window.innerWidth / 1000).toFixed(2);
+      if (iScaleY > 1) {
+        iScaleY = 1;
+      }
+      let iScaleX = iScaleY * -1;
+
+      mightHero.x = 0;
+      mightHero.y = 200;
+      mightHero.scaleX = iScaleX;
+      mightHero.scaleY = iScaleY;
+
+      magicHero.x = 0;
+      magicHero.y = 200;
+      magicHero.scaleX = iScaleX;
+      magicHero.scaleY = iScaleY;
+      magicHero.alpha = 0;
+
+      cunningHero.x = 0;
+      cunningHero.y = 200;
+      cunningHero.scaleX = iScaleX;
+      cunningHero.scaleY = iScaleY;
+      cunningHero.alpha = 0;
+
+      let logginTL = new TimelineMax();
+
+      stage.addChild(mightHero);
+      stage.addChild(magicHero);
+      stage.addChild(cunningHero);
+
+      logginTL.to(mightHero, 3, {
+        x: (300 * iScaleY),
+        onStart: function () {
+          mightHero.gotoAndPlay("Walk")
+        },
+        onComplete: function () {
+          mightHero.gotoAndPlay("Die")
+        },
+        ease: Power0.easeNone
+      })
+      logginTL.to(cunningHero, 2, {
+        x: (250 * iScaleY),
+        onStart: function () {
+          cunningHero.gotoAndPlay("Run"),
+            cunningHero.alpha = 1;
+        },
+        ease: Power1.easeIn
+      }, 3)
+      logginTL.to(cunningHero, .25, {
+        y: 125,
+        x: (325 * iScaleY),
+        onStart: function () {
+          cunningHero.gotoAndPlay("JumpUp");
+          cunningHero.alpha = 1;
+        },
+        ease: Power1.easeIn
+      }, 5)
+      logginTL.to(cunningHero, .25, {
+        y: 200,
+        x: (400 * iScaleY),
+        onStart: function () {
+          cunningHero.gotoAndPlay("JumpDown");
+        },
+        ease: Power1.easeInOut
+      }, 5.25)
+      logginTL.to(cunningHero, 2, {
+        x: (600 * iScaleY),
+        onStart: function () {
+          cunningHero.gotoAndPlay("Walk");
+        },
+        onComplete: function () {
+          cunningHero.gotoAndPlay("Die");
+          magicHero.alpha = 1;
+        },
+        ease: Power0.easeNone
+      }, 5.5)
     }
 
     function newAccount() {
