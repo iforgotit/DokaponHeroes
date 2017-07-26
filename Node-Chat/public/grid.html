@@ -837,38 +837,38 @@
 
       combatTL.to(leftRect, 1, {
         x: leftRect.x + zoomLocX,
-        ease: Power4.easeOut,
+        ease: Power3.easeOut,
         onComplete: function () {
           cbContainer.alpha = 1;
         }
       }, 0);
       combatTL.to(rightRect, 1, {
         x: rightRect.x - (bfWidth - zoomLocX),
-        ease: Power4.easeOut
+        ease: Power3.easeOut
       }, 0);
       combatTL.to(topRect, 1, {
         y: topRect.y + zoomLocY,
-        ease: Power4.easeOut
+        ease: Power3.easeOut
       }, 0);
       combatTL.to(botRect, 1, {
         y: botRect.y - (bfHeight - zoomLocY),
-        ease: Power4.easeOut
+        ease: Power3.easeOut
       }, 0);
       combatTL.to(leftRect, 1, {
         x: -bfWidth,
-        ease: Power4.easeOut
+        ease: Power3.easeIn
       }, 1);
       combatTL.to(rightRect, 1, {
         x: bfWidth,
-        ease: Power4.easeOut
+        ease: Power3.easeIn
       }, 1);
       combatTL.to(topRect, 1, {
         y: -bfHeight,
-        ease: Power4.easeOut
+        ease: Power3.easeIn
       }, 1);
       combatTL.to(botRect, 1, {
         y: bfHeight,
-        ease: Power4.easeOut
+        ease: Power3.easeIn
       }, 1);
 
       function animPhyical() {
