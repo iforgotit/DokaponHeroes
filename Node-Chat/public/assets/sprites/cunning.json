@@ -79,13 +79,18 @@
             "speed": 0.3,
             "next": "Stand"
         },
+        "Jump": {
+            "frames": [13, 7, 10, 12, 11, 8],
+            "speed": 0.2,
+            "next": "Stand"
+        },
         "JumpUp": {
             "frames": [13, 7, 10],
             "speed": 0.2,
             "next": "JumpDown"
         },
         "JumpDown": {
-            "frames": [ 12, 11, 8],
+            "frames": [12, 11, 8],
             "speed": 0.2,
             "next": "Stand"
         },

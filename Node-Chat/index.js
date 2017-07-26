@@ -502,12 +502,12 @@ function gameThread(gameData) {
           };
           grid[starX][starY].star.push(i);
 
-          //staggers star generation should not exceed 1 second
+          //staggers star generation should not exceed 2 second
           let emitWait;
           if (i == 0) {
             emitWait = 0;
           } else {
-            emitWait = Math.abs((2000 / i) - 2000);
+            emitWait = (2-(1 / i)) *1000;
           }
 
           setTimeout(function () {
@@ -673,11 +673,13 @@ function gameThread(gameData) {
             aDied = true;
           }
           let pJSON = {
+            "dName": player.dName,
             "pClass": player.pClass,
             x: player.x,
             y: player.y
           }
           let aJSON = {
+            "dName":advs.dName,
             "pClass": advs.pClass,
             x: advs.x,
             y: advs.y
@@ -689,9 +691,9 @@ function gameThread(gameData) {
           //clearInterval(fightT);
           setTimeout(function () {
             t = setInterval(turnTime, 1000);
-          }, 5000);
+          }, 6500);
         } else {
-          setTimeout(singleCombat, 5000);
+          setTimeout(singleCombat, 6500);
         }
       }
     }

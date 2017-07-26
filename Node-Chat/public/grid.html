@@ -82,16 +82,22 @@
       bfgridxy = size;
       afterGrass = size * size;
       var canvas = document.getElementById("battlefield");
-      if (size > 5) {
-        canvas.height = (size * 100) + 20;
-        canvas.width = (size * 100) + 20;
-      } else {
-        canvas.height = 520;
-        canvas.width = 520;
+      var pnlBF = document.getElementById("divBattlefield");
+
+      canvas.height = (size * 100) + 20;
+      canvas.width = (size * 100) + 20;
+
+      if (canvas.width < pnlBF.offsetWidth) {
+        canvas.width = pnlBF.offsetWidth - 20;
       }
+
+      if (canvas.height < 700) {
+        canvas.height = 700;
+      }
+
       var wheight = window.innerHeight + "px";
       document.getElementById("divPlayersPanel").style.height = wheight;
-      document.getElementById("divBattlefield").style.height = wheight;
+      pnlBF.style.height = wheight;
     }
 
     // returns the max x or y, this needs to be multipled by 100 to get grid coords
@@ -322,7 +328,6 @@
           stage.addChild(nameplate);
           stage.addChild(hero);
         }
-
       }
 
       stage.update();
@@ -627,7 +632,7 @@
 
     socket.on("died", function (combat, pX) {
 
-      setTimeout(deadAction, 1500);
+      setTimeout(deadAction, 6500);
 
       function deadAction() {
         document.getElementById("z").innerHTML += combat + "<br>";
@@ -697,13 +702,14 @@
 
 
     socket.on("attack", function (combat, pX, pY, damage, attackType) {
-      document.getElementById("z").innerHTML += combat + "<br>";
 
-      let dmgText = new createjs.Text(damage, "bold 32px Arial", "#ff7700");
-      dmgText.x = pY.x;
-      dmgText.y = pY.y;
+      let dmgText = new createjs.Text(damage, "bold 36px Arial", "#ff7700");
+      dmgText.alpha = 0;
+
+      let WVW = pX.dName + " attacks " + pY.dName;
 
       let cbContainer = new createjs.Container();
+      let transContainer = new createjs.Container();
       let bgForest = queue.getResult("forest");
       let forest = new createjs.Bitmap(bgForest);
       let leftRect = new createjs.Shape();
@@ -720,6 +726,12 @@
 
       let zoomLocX = (pX.x * 100) + 50;
       let zoomLocY = (pX.y * 100) + 50;
+
+      let vsText = new createjs.Text(WVW, "bold 48px Arial", "#ff7700");
+      vsText.x = pnlWidth / 2;
+      vsText.y = 50;
+      vsText.lineWidth = pnlWidth;
+      vsText.textAlign = "center";
 
       let pSpriteSheet;
       switch (pX.pClass) {
@@ -749,23 +761,23 @@
       }
       var aHero = new createjs.Sprite(aSpriteSheet, "Stand");
 
-      leftRect.graphics.beginFill("#000000").drawRect(0, 0, bfHeight, bfWidth);
-      leftRect.x = -(bfWidth);
+      leftRect.graphics.beginFill("#000000").drawRect(0, 0, bfWidth, bfHeight);
+      leftRect.x = -bfWidth;
       leftRect.y = 0;
 
-      // rightRect.graphics.beginFill("#000000").drawRect(0, 0, bfHeight, bfWidth);
-      // rightRect.x = bfWidth;
-      // rightRect.y = 0;
+      rightRect.graphics.beginFill("#000000").drawRect(0, 0, bfWidth, bfHeight);
+      rightRect.x = bfWidth;
+      rightRect.y = 0;
 
-      // topRect.graphics.beginFill("#000000").drawRect(0, 0, bfHeight, bfWidth);
-      // topRect.x = 0;
-      // topRect.y = 0;
+      topRect.graphics.beginFill("#000000").drawRect(0, 0, bfWidth, bfHeight);
+      topRect.x = 0;
+      topRect.y = -bfHeight;
 
-      // botRect.graphics.beginFill("#000000").drawRect(0, 0, bfHeight, bfWidth);
-      // botRect.x = 0;
-      // botRect.y = bfHeight;
+      botRect.graphics.beginFill("#000000").drawRect(0, 0, bfWidth, bfHeight);
+      botRect.x = 0;
+      botRect.y = bfHeight;
 
-      let combatScale = Number(document.getElementById("battlefield").offsetWidth / 1000).toFixed(2);
+      let combatScale = Number(pnlWidth / 1000).toFixed(1);
       if (combatScale > 1) {
         combatScale = 1;
       }
@@ -783,22 +795,29 @@
       pHero.x = 200 * combatScale;
       aHero.x = 800 * combatScale;
 
-      cbContainer.addChild(forest);
-      cbContainer.addChild(leftRect);
-      cbContainer.addChild(pHero, aHero);
+      cbContainer.alpha = 0;
 
-      //cbContainer.addChild(leftRect,rightRect,topRect,botRect);
+      let scale50px = (50 * combatScale);
+      let scale150px = (150 * combatScale)
+
+      dmgText.x = aHero.x + scale50px;
+      dmgText.y = aHero.y - scale150px;
+
+      cbContainer.addChild(forest, vsText);
+      transContainer.addChild(leftRect, rightRect, topRect, botRect);
+      cbContainer.addChild(pHero, aHero, dmgText);
 
       stage.addChild(cbContainer);
+      stage.addChild(transContainer);
       stage.update();
 
       let combatTL = new TimelineMax();
       let animAttack;
-      combatTL.add("wipeEnd", 0);
+      combatTL.add("wipeEnd", 2);
 
       switch (attackType) {
         case "physical":
-          combatTL.add(animPhyical());
+          animPhyical();
           break;
         case "magical":
           animLightening();
@@ -807,48 +826,75 @@
           animDodge();
           break;
         case "riposte":
+          dmgText.x = dmgText.x - scale150px;
           animRiposte();
           break;
         default:
           break;
       }
 
-      combatTL.add(clearStage, 4);
+      combatTL.add(clearStage, 6);
 
-      // combatTL.fromTo(leftRect, 2,{}, {
-      //   x: x+zoomLocX,
-      //   ease: Power4.easeOut,
-      //   repeat: 1,
-      //   yoyo: true
-      // }, 0);
-
-      // combatTL.to(rightRect, 1, {
-      //   x: zoomLocX,
-      //   ease: Power4.easeOut
-      // }, 0);
-
-      // combatTL.to(topRect, 1, {
-      //   x: zoomLocX,
-      //   ease: Power4.easeOut
-      // }, 0);
-
-      // combatTL.to(botRect, 1, {
-      //   x: zoomLocX,
-      //   ease: Power4.easeOut
-      // }, 0);
+      combatTL.to(leftRect, 1, {
+        x: leftRect.x + zoomLocX,
+        ease: Power4.easeOut,
+        onComplete: function () {
+          cbContainer.alpha = 1;
+        }
+      }, 0);
+      combatTL.to(rightRect, 1, {
+        x: rightRect.x - (bfWidth - zoomLocX),
+        ease: Power4.easeOut
+      }, 0);
+      combatTL.to(topRect, 1, {
+        y: topRect.y + zoomLocY,
+        ease: Power4.easeOut
+      }, 0);
+      combatTL.to(botRect, 1, {
+        y: botRect.y - (bfHeight - zoomLocY),
+        ease: Power4.easeOut
+      }, 0);
+      combatTL.to(leftRect, 1, {
+        x: -bfWidth,
+        ease: Power4.easeOut
+      }, 1);
+      combatTL.to(rightRect, 1, {
+        x: bfWidth,
+        ease: Power4.easeOut
+      }, 1);
+      combatTL.to(topRect, 1, {
+        y: -bfHeight,
+        ease: Power4.easeOut
+      }, 1);
+      combatTL.to(botRect, 1, {
+        y: bfHeight,
+        ease: Power4.easeOut
+      }, 1);
 
       function animPhyical() {
-        animAttack = TweenMax.to(pHero, 3, {
-          x: (aHero.x - 50),
+        combatTL.to(pHero, 3, {
+          x: (aHero.x - (100 * combatScale)),
           onStart: function () {
             pHero.gotoAndPlay("Run");
           },
           onComplete: function () {
             pHero.gotoAndPlay("Attack");
+          },
+          ease: Power0.easeNone
+        }, "wipeEnd");
+        combatTL.to(aHero, 1, {
+          onStart: function () {
             aHero.gotoAndPlay("Hurt");
           }
-        }, "wipeEnd");
-        return animAttack;
+        }, 5.5)
+        combatTL.to(dmgText, 1, {
+          onStart: function () {
+            dmgText.alpha = 1;
+          },
+          x: dmgText.x + scale50px,
+          y: dmgText.y + scale50px,
+          ease: Bounce.easeOut
+        }, 5.5)
       }
 
       function animLightening() {
@@ -861,20 +907,81 @@
       }
 
       function animDodge() {
-
+        combatTL.to(pHero, 3, {
+          x: (aHero.x - scale150px),
+          onStart: function () {
+            pHero.gotoAndPlay("Run");
+          },
+          onComplete: function () {
+            pHero.gotoAndPlay("Attack");
+          },
+          ease: Power0.easeNone
+        }, "wipeEnd");
+        combatTL.to(aHero, 1, {
+          x: (aHero.x + (60 * combatScale)),
+          scaleX: combatScale
+        }, 5)
+        combatTL.to(dmgText, 1, {
+          onStart: function () {
+            dmgText.alpha = 1;
+          },
+          x: dmgText.x + scale50px,
+          y: dmgText.y + scale50px,
+          ease: Bounce.easeOut
+        }, 5)
       }
 
       function animRiposte() {
-
+        aHero.scaleX = combatScale
+        combatTL.to(pHero, 3, {
+          x: (aHero.x - scale150px),
+          onStart: function () {
+            pHero.gotoAndPlay("Run");
+          },
+          onComplete: function () {
+            pHero.gotoAndPlay("Attack");
+          },
+          ease: Power0.easeNone
+        }, "wipeEnd");
+        combatTL.to(aHero, .5, {
+          y: (aHero.y - scale150px),
+          x: (aHero.x - scale150px),
+          onStart: function () {
+            aHero.gotoAndPlay("Jump");
+          }
+        }, 4.5)
+        combatTL.to(aHero, .5, {
+          y: (aHero.y),
+          x: (aHero.x - (260 * combatScale)),
+          onComplete: function () {
+            aHero.scaleX = -combatScale;
+            aHero.gotoAndPlay("Attack");
+          }
+        }, 5)
+        combatTL.to(pHero, .5, {
+          onStart: function () {
+            pHero.gotoAndPlay("Hurt");
+          }
+        }, 6)
+        combatTL.to(dmgText, 1, {
+          onStart: function () {
+            dmgText.alpha = 1;
+          },
+          x: dmgText.x + scale50px,
+          y: dmgText.y + scale50px,
+          ease: Bounce.easeOut
+        }, 6)
       }
 
       function clearStage() {
         TweenMax.to(cbContainer, 1, {
-          alhpa: 0,
+          alpha: 0,
           onComplete: function () {
             stage.removeChild(cbContainer);
+            stage.removeChild(transContainer);
           }
         })
+        document.getElementById("z").innerHTML += combat + "<br>";
       }
     });
 
