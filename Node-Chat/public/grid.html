@@ -335,7 +335,8 @@
       var initJSON = {
         "playerID": sessionStorage.id,
         "turn": 0,
-        "actionType": "init"
+        "actionType": "init",
+        "weight": 0
       }
       socket.emit('turnData', initJSON);
     });
@@ -354,13 +355,14 @@
           "stageX": event.stageX,
           "actionType": "move",
           "turn": turnCount,
-          "target": target.name
+          "target": target.name,
+          "weight": 1
         }
         socket.emit('turnData', turnJSON);
       }
     }
 
-    function handleDefendEvent(dAction) {
+    function disableDefendButtons(dAction) {
       let y = document.getElementById("mdlDefend");
       let x = y.getElementsByTagName("button");
 
@@ -372,17 +374,9 @@
           x[i].classList = "btn-block btn-default";
         }
       }
-
-      let turnJSON = {
-        "playerID": sessionStorage.id,
-        "actionType": "defend",
-        "turn": turnCount,
-        "dAction": dAction
-      }
-      socket.emit('turnData', turnJSON);
     }
 
-    function handleAttackEvent(aAction, aID) {
+    function disableAttackButtons(aAction) {
       let y = document.getElementById("mdlAttack");
       let x = y.getElementsByTagName("button");
 
@@ -394,35 +388,56 @@
           x[i].classList = "btn-block btn-default";
         }
       }
+    }
+
+    function handleDefendEvent(dAction) {
+      disableDefendButtons(dAction);
+
+      let turnJSON = {
+        "playerID": sessionStorage.id,
+        "actionType": "defend",
+        "turn": turnCount,
+        "dAction": dAction,
+        "weight": .5
+      }
+      socket.emit('turnData', turnJSON);
+    }
+
+    function handleAttackEvent(aAction, aID) {
+      disableAttackButtons(aAction);
 
       let turnJSON = {
         "playerID": sessionStorage.id,
         "actionType": "attack",
         "turn": turnCount,
         "advsID": aID,
-        "aAction": aAction
+        "aAction": aAction,
+        "weight": .5
       }
       socket.emit('turnData', turnJSON);
     }
 
-    function handleRetreatEvent(aAction) {
-      let y = document.getElementById("mdlAttack");
-      let x = y.getElementsByTagName("button");
+    function handleFocusEvent(aAction) {
+      disableAttackButtons(aAction);
 
-      for (let i = 0; i <= x.length - 1; i++) {
-        x[i].disabled = "disabled";
-        if (i == aAction) {
-          x[i].classList = "btn-block btn-success";
-        } else {
-          x[i].classList = "btn-block btn-default";
-        }
-      }
+      let turnJSON = {
+        "playerID": sessionStorage.id,
+        "actionType": "focus",
+        "turn": turnCount,
+        "weight": .5
+      };
+      socket.emit('turnData', turnJSON);
+    }
+
+    function handleRetreatEvent(dAction) {
+      disableDefendButtons(dAction);
 
       let turnJSON = {
         "playerID": sessionStorage.id,
         "actionType": "retreat",
         "turn": turnCount,
-        "gridSize": getbfgridxy()
+        "gridSize": getbfgridxy(),
+        "weight": .5
       }
       socket.emit('turnData', turnJSON);
     }
@@ -555,7 +570,7 @@
       a1.innerHTML = "Reckless Attack";
       a2.innerHTML = "Defensive Attack";
       a3.innerHTML = "Magic Missile";
-      a4.innerHTML = "Retreat";
+      a4.innerHTML = "Focus";
 
       a1.onclick = function () {
         handleAttackEvent(0, advs.pID);
@@ -567,7 +582,7 @@
         handleAttackEvent(2, advs.pID);
       };
       a4.onclick = function () {
-        handleRetreatEvent(3)
+        handleAttackEvent(3, advs.pID);
       };
 
       attackPlayer.appendChild(aLbl);
@@ -607,7 +622,7 @@
       d1.innerHTML = "Counter Attack";
       d2.innerHTML = "Block";
       d3.innerHTML = "Resist";
-      d4.innerHTML = "Focus";
+      d4.innerHTML = "Retreat";
 
       d1.onclick = function () {
         handleDefendEvent(0);
@@ -619,7 +634,7 @@
         handleDefendEvent(2);
       };
       d4.onclick = function () {
-        handleDefendEvent(3);
+        handleRetreatEvent(3);
       };
 
       defendPanel.appendChild(dLbl);
@@ -829,6 +844,8 @@
           dmgText.x = dmgText.x - scale150px;
           animRiposte();
           break;
+        case "focus":
+          animFocus();
         default:
           break;
       }
@@ -859,7 +876,7 @@
         ease: Power3.easeIn
       }, 1);
       combatTL.to(rightRect, 1, {
-        x: bfWidth,
+        x: 1024*combatScale,
         ease: Power3.easeIn
       }, 1);
       combatTL.to(topRect, 1, {
@@ -867,7 +884,7 @@
         ease: Power3.easeIn
       }, 1);
       combatTL.to(botRect, 1, {
-        y: bfHeight,
+        y: 683*combatScale,
         ease: Power3.easeIn
       }, 1);
 
@@ -897,13 +914,48 @@
         }, 5.5)
       }
 
+      function animFocus(){
+
+      }
+
       function animLightening() {
-        // var lighteningSprite = queue.getResult("lightening");
-        // let lightening = new createjs.Sprite(lighteningSprite, "lighting");
-        // lightening.x = pHOX;
-        // lightening.y = pHOY - 50;
-        // lightening.scaleX = .15;
-        // lightening.scaleY = .15;
+        var lighteningSprite = queue.getResult("lightening");
+        let lightening = new createjs.Sprite(lighteningSprite, "lighting");
+        lightening.x = pHero.x + (130 * combatScale);
+        lightening.y = pHero.y - scale50px;
+        lightening.scaleX = (.5 * combatScale);
+        lightening.scaleY = (.5 * combatScale);
+        lightening.alpha = 0;
+        cbContainer.addChild(lightening);
+
+        combatTL.to(pHero, 1, {
+          onStart: function () {
+            pHero.gotoAndPlay("Attack");
+          }
+        }, "wipeEnd");
+        combatTL.to(lightening, 1, {
+          onStart: function () {
+            lightening.alpha = 1;
+          },
+          onComplete: function () {
+            lightening.alpha = 0;
+          },
+          x: aHero.x - (100 * combatScale),
+          ease: Power0.easeNone
+        }, 2.5)
+        combatTL.to(aHero, 1, {
+          onStart: function () {
+            aHero.gotoAndPlay("Hurt");
+          }
+        }, 3.5)
+        combatTL.to(dmgText, 1, {
+          onStart: function () {
+            dmgText.alpha = 1;
+          },
+          x: dmgText.x + scale50px,
+          y: dmgText.y + scale50px,
+          ease: Bounce.easeOut
+        }, 3.5)
       }
 
       function animDodge() {

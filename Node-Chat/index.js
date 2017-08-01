@@ -270,9 +270,9 @@ lobbynsp.on('connection', function (socket) {
         pJSON.cunning = 0;
     }
 
-    pJSON.attackActions = ["Reckless Attack", "Defensive Attack", "Magic Missile", "Retreat"];
+    pJSON.attackActions = ["Reckless Attack", "Defensive Attack", "Magic Missile", "Focus"];
 
-    pJSON.defenseActions = ["Counter Attack", "Block", "Resist", "Focus"];
+    pJSON.defenseActions = ["Counter Attack", "Block", "Resist", "Retreat"];
 
     MongoClient.connect(url, function (err, db) {
       assert.equal(null, err);
@@ -502,12 +502,14 @@ function gameThread(gameData) {
           };
           grid[starX][starY].star.push(i);
 
+          ingame.in(gameData._id).emit('objective', starVar);
+
           //staggers star generation should not exceed 2 second
           let emitWait;
           if (i == 0) {
             emitWait = 0;
           } else {
-            emitWait = (2-(1 / i)) *1000;
+            emitWait = (2 - (1 / i)) * 1000;
           }
 
           setTimeout(function () {
@@ -564,15 +566,6 @@ function gameThread(gameData) {
             //if that array is not empty
             if (iDefense[j].defense != undefined) {
               players[i].defense = players[i].defenseActions[iDefense[j].defense];
-              if (players[i].defense == "Focus") {
-                let focusPower = players[i].magic;
-
-                players[i].focusDecay[turnCount + 2] = focusPower;
-
-                players[i].strength += focusPower;
-                players[i].magic += focusPower;
-                players[i].cunning += focusPower;
-              }
             }
           }
         }
@@ -581,8 +574,6 @@ function gameThread(gameData) {
 
     function performAttack(attackARAY) {
       let i = 0;
-
-      //var fightT = setInterval(singleCombat, 6500);
 
       singleCombat();
 
@@ -657,8 +648,17 @@ function gameThread(gameData) {
               players[advsIndex].hp -= damage;
               attackType = "magical";
               break;
-            case "Retreat":
-              combat = player.dName + " runs away";
+            case "Focus":
+              let focusPower = player.magic;
+
+              player.focusDecay[turnCount + 3] = focusPower;
+
+              players[playerIndex].strength += focusPower;
+              players[playerIndex].magic += focusPower;
+              players[playerIndex].cunning += focusPower;
+              damage = "";
+              attackType = "focus";
+              combat = player.dName + " reflects on himself. Why is he so angry all the time?";
               break;
             default:
               combat = "Something went wrong idk"
@@ -679,7 +679,7 @@ function gameThread(gameData) {
             y: player.y
           }
           let aJSON = {
-            "dName":advs.dName,
+            "dName": advs.dName,
             "pClass": advs.pClass,
             x: advs.x,
             y: advs.y
@@ -873,7 +873,9 @@ function gameThread(gameData) {
                   case "retreat":
                     let xRetreat = Math.floor((Math.random() * turnDB[i].gridSize));
                     let yRetreat = Math.floor((Math.random() * turnDB[i].gridSize));
-                    dropStar(findPlayer(turnDB[i].playerID));
+                    if (findPlayer(turnDB[i].playerID).star >= 1) {
+                      dropStar(findPlayer(turnDB[i].playerID));
+                    };
                     moveARAY.push({
                       'playerID': turnDB[i].playerID,
                       'stageX': xRetreat * 100,
@@ -1015,6 +1017,7 @@ function gameThread(gameData) {
 ingame.on('connection', function (socket) {
 
   var gameID;
+  var turnComplete = 0;
 
   function getGameID() {
     return gameID;
@@ -1079,8 +1082,9 @@ ingame.on('connection', function (socket) {
     // Use connect method to connect to the server
     MongoClient.connect(url, function (err, db) {
       assert.equal(null, err);
-      addPlayerTurn(db, turnEvent, function () {
+      addPlayerTurn(db, turnEvent, function (turnWeight) {
         db.close();
+        turnComplete += turnWeight;
       });
     });
   });
@@ -1100,7 +1104,18 @@ ingame.on('connection', function (socket) {
       function (err, result) {
         assert.equal(err, null);
         assert.equal(1, result.result.n);
-        callback();
+        callback(turnEvent.weight);
       });
   }
 });
+
+//focus method, maybe I want to do it as an attack action? then we get a little animation action
+// if (players[i].defense == "Focus") {
+//   let focusPower = players[i].magic;
+
+//   players[i].focusDecay[turnCount + 3] = focusPower;
+
+//   players[i].strength += focusPower;
+//   players[i].magic += focusPower;
+//   players[i].cunning += focusPower;
+// }
