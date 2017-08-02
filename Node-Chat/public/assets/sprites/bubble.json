@@ -1,0 +1,17 @@
+{
+
+    "images": [
+        "../../assets/sprites/bubble.png"
+    ],
+
+    "frames": [
+        [1, 1, 37, 174, 0, 0, 0]
+    ],
+
+    "animations": {
+        "none": {
+            "frames": [0]
+        }
+    }
+
+}

@@ -7,7 +7,6 @@
         "width": 118,
         "height": 118
     },
-
     "animations": {
         "fight": {
             "frames": [1, 2, 3, 4, 5],

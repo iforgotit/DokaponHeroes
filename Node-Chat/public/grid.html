@@ -88,7 +88,7 @@
       canvas.width = (size * 100) + 20;
 
       if (canvas.width < pnlBF.offsetWidth) {
-        canvas.width = pnlBF.offsetWidth - 20;
+        canvas.width = pnlBF.offsetWidth - 40;
       }
 
       if (canvas.height < 700) {
@@ -204,6 +204,11 @@
       }, {
         id: "star",
         src: "../../assets/sprites/star.json",
+        type: "spritesheet",
+        crossOrigin: true
+      }, {
+        id: "bubble",
+        src: "../../assets/sprites/bubble.json",
         type: "spritesheet",
         crossOrigin: true
       }, {
@@ -721,7 +726,12 @@
       let dmgText = new createjs.Text(damage, "bold 36px Arial", "#ff7700");
       dmgText.alpha = 0;
 
-      let WVW = pX.dName + " attacks " + pY.dName;
+      let WVW;
+      if (attackType == "focus") {
+        WVW = pX.dName + " gets hyped";
+      } else {
+        WVW = pX.dName + " attacks " + pY.dName;
+      }
 
       let cbContainer = new createjs.Container();
       let transContainer = new createjs.Container();
@@ -741,6 +751,7 @@
 
       let zoomLocX = (pX.x * 100) + 50;
       let zoomLocY = (pX.y * 100) + 50;
+
 
       let vsText = new createjs.Text(WVW, "bold 48px Arial", "#ff7700");
       vsText.x = pnlWidth / 2;
@@ -876,7 +887,7 @@
         ease: Power3.easeIn
       }, 1);
       combatTL.to(rightRect, 1, {
-        x: 1024*combatScale,
+        x: 1024 * combatScale,
         ease: Power3.easeIn
       }, 1);
       combatTL.to(topRect, 1, {
@@ -884,12 +895,12 @@
         ease: Power3.easeIn
       }, 1);
       combatTL.to(botRect, 1, {
-        y: 683*combatScale,
+        y: 683 * combatScale,
         ease: Power3.easeIn
       }, 1);
 
       function animPhyical() {
-        combatTL.to(pHero, 3, {
+        combatTL.to(pHero, 2, {
           x: (aHero.x - (100 * combatScale)),
           onStart: function () {
             pHero.gotoAndPlay("Run");
@@ -903,7 +914,7 @@
           onStart: function () {
             aHero.gotoAndPlay("Hurt");
           }
-        }, 5.5)
+        }, 4.5)
         combatTL.to(dmgText, 1, {
           onStart: function () {
             dmgText.alpha = 1;
@@ -911,11 +922,46 @@
           x: dmgText.x + scale50px,
           y: dmgText.y + scale50px,
           ease: Bounce.easeOut
-        }, 5.5)
+        }, 4.5)
       }
 
-      function animFocus(){
+      function animFocus() {
+        aHero.alpha = 0;
 
+        var halfBubble = queue.getResult("bubble");
+        let focusLeft = new createjs.Sprite(halfBubble, "none");
+        let focusRight = new createjs.Sprite(halfBubble, "none");
+        focusLeft.x = 0;
+        focusLeft.y = 500 * combatScale;
+        focusRight.x = 0;
+        focusRight.y = 500 * combatScale;
+        focusLeft.alpha = 1;
+        focusLeft.scaleX = combatScale;
+        focusLeft.scaleY = combatScale;
+
+        focusRight.alpha = 1;
+        focusRight.scaleX = -combatScale;
+        focusRight.scaleY = combatScale;
+
+        pHero.x = 500 * combatScale;
+
+        cbContainer.addChild(focusLeft,focusRight);
+
+        combatTL.fromTo(focusLeft, 1, {
+          x: 500 * combatScale
+        }, {
+          x: 600 * combatScale,
+          yoyo: true,
+          repeat: -1
+        }, 3)
+
+        combatTL.fromTo(focusRight, 1, {
+          x: 500 * combatScale
+        }, {
+          x: 400 * combatScale,
+          yoyo: true,
+          repeat: -1
+        }, 3)
       }
 
       function animLightening() {
@@ -959,7 +1005,7 @@
       }
 
       function animDodge() {
-        combatTL.to(pHero, 3, {
+        combatTL.to(pHero, 2, {
           x: (aHero.x - scale150px),
           onStart: function () {
             pHero.gotoAndPlay("Run");
@@ -972,7 +1018,7 @@
         combatTL.to(aHero, 1, {
           x: (aHero.x + (60 * combatScale)),
           scaleX: combatScale
-        }, 5)
+        }, 4)
         combatTL.to(dmgText, 1, {
           onStart: function () {
             dmgText.alpha = 1;
@@ -980,12 +1026,12 @@
           x: dmgText.x + scale50px,
           y: dmgText.y + scale50px,
           ease: Bounce.easeOut
-        }, 5)
+        }, 4)
       }
 
       function animRiposte() {
         aHero.scaleX = combatScale
-        combatTL.to(pHero, 3, {
+        combatTL.to(pHero, 2, {
           x: (aHero.x - scale150px),
           onStart: function () {
             pHero.gotoAndPlay("Run");
@@ -1001,7 +1047,7 @@
           onStart: function () {
             aHero.gotoAndPlay("Jump");
           }
-        }, 4.5)
+        }, 3.5)
         combatTL.to(aHero, .5, {
           y: (aHero.y),
           x: (aHero.x - (260 * combatScale)),
@@ -1009,12 +1055,12 @@
             aHero.scaleX = -combatScale;
             aHero.gotoAndPlay("Attack");
           }
-        }, 5)
+        }, 4)
         combatTL.to(pHero, .5, {
           onStart: function () {
             pHero.gotoAndPlay("Hurt");
           }
-        }, 6)
+        }, 5)
         combatTL.to(dmgText, 1, {
           onStart: function () {
             dmgText.alpha = 1;
@@ -1022,7 +1068,7 @@
           x: dmgText.x + scale50px,
           y: dmgText.y + scale50px,
           ease: Bounce.easeOut
-        }, 6)
+        }, 5)
       }
 
       function clearStage() {

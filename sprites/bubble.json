@@ -1,0 +1,20 @@
+{
+
+"images": [
+    "bubble.png"
+],
+
+"frames": [
+    [1, 1, 37, 174, 0, 0, 0]
+],
+
+"animations": {
+    "Blast": { "frames": [0] }
+},
+
+"texturepacker": [
+        "SmartUpdateHash: $TexturePacker:SmartUpdate:fe9f1988641c5317ec4e730eca8e0322:a237f6e08360a7cc429cb58c880bb10c:5043a9c7e6a816c4b4127c3e19dde8d3$",
+        "Created with TexturePacker (https://www.codeandweb.com/texturepacker) for EaselJS"
+]
+
+}

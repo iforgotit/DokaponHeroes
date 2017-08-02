@@ -685,15 +685,23 @@ function gameThread(gameData) {
             y: advs.y
           }
           ingame.in(gameData._id).emit('attack', combat, pJSON, aJSON, damage, attackType);
+        } else {
+          i++;
+          if (i >= (attackARAY.length)) {
+            t = setInterval(turnTime, 1000);
+            return;
+          } else {
+            singleCombat();
+            return;
+          }
         }
         i++;
         if (i >= (attackARAY.length)) {
-          //clearInterval(fightT);
           setTimeout(function () {
             t = setInterval(turnTime, 1000);
-          }, 6500);
+          }, 5500);
         } else {
-          setTimeout(singleCombat, 6500);
+          setTimeout(singleCombat, 5500);
         }
       }
     }
@@ -703,10 +711,27 @@ function gameThread(gameData) {
       let rip = players[playerIndex].dName + " is no longer with us";
       ingame.in(gameData._id).emit('died', rip, players[playerIndex].pID);
       players[playerIndex].inCombat = [];
+      removeFromCombat(players[playerIndex].pID);
       let starCount = players[playerIndex].star.length;
       for (let i = 0; i < starCount; i++) {
         dropStar(playerIndex);
-      }
+      };
+    }
+
+    function removeFromCombat(playerID) {
+      //loop through players
+      for (let i = 0; i < players.length; i++) {
+        //if they are alive
+        if (players[i].isDead == false) {
+          //loop through combat array
+          for (let j = 0; j < players[i].inCombat.length; j++) {
+            if (players[i].inCombat[j] == playerID) {
+              players[i].inCombat.splice(j, 1);
+              j--;
+            };
+          };
+        };
+      };
     }
 
     function checkForCombat() {
@@ -721,6 +746,7 @@ function gameThread(gameData) {
         }
 
         pX.inCombat = new Array();
+
         if (pX.isDead == false) {
           for (let i = 0; i < players.length; i++) {
             if (i != n) {
@@ -730,13 +756,13 @@ function gameThread(gameData) {
                 if (pX.x == pY.x && pX.y == pY.y) {
                   pX.inCombat.push(pYID);
                 };
-              }
+              };
             };
           };
           if (pX.inCombat) {
             pX.initative = Math.random() + pX.cunning;
-          }
-        }
+          };
+        };
       };
     }
 
@@ -873,8 +899,9 @@ function gameThread(gameData) {
                   case "retreat":
                     let xRetreat = Math.floor((Math.random() * turnDB[i].gridSize));
                     let yRetreat = Math.floor((Math.random() * turnDB[i].gridSize));
-                    if (findPlayer(turnDB[i].playerID).star >= 1) {
-                      dropStar(findPlayer(turnDB[i].playerID));
+                    let playerIndex = findPlayer(turnDB[i].playerID);
+                    if (players[playerIndex].star.length >= 1) {
+                      dropStar(playerIndex);
                     };
                     moveARAY.push({
                       'playerID': turnDB[i].playerID,
@@ -894,6 +921,7 @@ function gameThread(gameData) {
 
               if (attackARAY.length != 0) {
                 clearInterval(t);
+                //sortAttackARAY(attackARAY, performAttack);
                 performAttack(attackARAY);
               }
 
@@ -1109,13 +1137,3 @@ ingame.on('connection', function (socket) {
   }
 });
 
-//focus method, maybe I want to do it as an attack action? then we get a little animation action
-// if (players[i].defense == "Focus") {
-//   let focusPower = players[i].magic;
-
-//   players[i].focusDecay[turnCount + 3] = focusPower;
-
-//   players[i].strength += focusPower;
-//   players[i].magic += focusPower;
-//   players[i].cunning += focusPower;
-// }
