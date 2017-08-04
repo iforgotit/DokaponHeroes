@@ -461,8 +461,8 @@ function gameThread(gameData) {
     function findPlayerInit(value) {
       for (let i = 0; i < players.length; i++) {
         if (players[i].pID == value) {
-          if (players[i].initative) {
-            return players[i].initative;
+          if (players[i].initiative) {
+            return players[i].initiative;
           } else {
             return 1;
           }
@@ -598,18 +598,40 @@ function gameThread(gameData) {
         let hitchance = Math.floor((Math.random() * 100) + 1);
 
         if (player.isDead == false && advs.isDead == false) {
-          switch (playerAttack) {
-            case "Reckless Attack":
-              damage = player.strength * 3;
-              dodge = dodge * 1.2;
-              if (advs.defense == "Counter Attack") {
-                combat = "OMG you just played yourself! " + advs.dName + " does " + damage + " to " + player.dName;
-                players[playerIndex].hp -= damage;
-                attackType = "riposte";
-              } else {
+          if (player.initiative < advs.initiative && advsDefense == "Retreat") {
+            damage = "";
+            attackType = "runaway";
+            combat = advs.dName + " ran away";
+          } else {
+            switch (playerAttack) {
+              case "Reckless Attack":
+                damage = player.strength * 3;
+                dodge = dodge * 1.2;
+                if (advs.defense == "Counter Attack") {
+                  combat = "OMG you just played yourself! " + advs.dName + " does " + damage + " to " + player.dName;
+                  players[playerIndex].hp -= damage;
+                  attackType = "riposte";
+                } else {
+                  if (hitchance > dodge) {
+                    if (advs.defense == "Block") {
+                      damage = damage / 1.6;
+                    }
+                    damage = Math.ceil(damage);
+                    combat = player.dName + "'s " + playerAttack + " does " + damage + " to " + advs.dName;
+                    players[advsIndex].hp -= damage;
+                    attackType = "physical";
+                  } else {
+                    combat = advs.dName + " put on his juke shoes and dodged " + player.dName + "'s attack";
+                    damage = 0;
+                    attackType = "dodge";
+                  }
+                }
+                break;
+              case "Defensive Attack":
+                damage = player.strength;
                 if (hitchance > dodge) {
                   if (advs.defense == "Block") {
-                    damage = damage / 1.6;
+                    damage = damage / 2;
                   }
                   damage = Math.ceil(damage);
                   combat = player.dName + "'s " + playerAttack + " does " + damage + " to " + advs.dName;
@@ -620,50 +642,35 @@ function gameThread(gameData) {
                   damage = 0;
                   attackType = "dodge";
                 }
-              }
-              break;
-            case "Defensive Attack":
-              damage = player.strength;
-              if (hitchance > dodge) {
-                if (advs.defense == "Block") {
-                  damage = damage / 2;
+                break;
+              case "Magic Missile":
+                damage = player.magic * 2;
+                if (advs.defense == "Resist") {
+                  damage = damage - advs.magic;
                 }
                 damage = Math.ceil(damage);
                 combat = player.dName + "'s " + playerAttack + " does " + damage + " to " + advs.dName;
                 players[advsIndex].hp -= damage;
-                attackType = "physical";
-              } else {
-                combat = advs.dName + " put on his juke shoes and dodged " + player.dName + "'s attack";
-                damage = 0;
-                attackType = "dodge";
-              }
-              break;
-            case "Magic Missile":
-              damage = player.magic * 2;
-              if (advs.defense == "Resist") {
-                damage = damage - advs.magic;
-              }
-              damage = Math.ceil(damage);
-              combat = player.dName + "'s " + playerAttack + " does " + damage + " to " + advs.dName;
-              players[advsIndex].hp -= damage;
-              attackType = "magical";
-              break;
-            case "Focus":
-              let focusPower = player.magic;
+                attackType = "magical";
+                break;
+              case "Focus":
+                let focusPower = player.magic;
 
-              player.focusDecay[turnCount + 3] = focusPower;
+                player.focusDecay[turnCount + 3] = focusPower;
 
-              players[playerIndex].strength += focusPower;
-              players[playerIndex].magic += focusPower;
-              players[playerIndex].cunning += focusPower;
-              damage = "";
-              attackType = "focus";
-              combat = player.dName + " reflects on himself. Why is he so angry all the time?";
-              break;
-            default:
-              combat = "Something went wrong idk"
-              break;
+                players[playerIndex].strength += focusPower;
+                players[playerIndex].magic += focusPower;
+                players[playerIndex].cunning += focusPower;
+                damage = "";
+                attackType = "focus";
+                combat = player.dName + " reflects on himself. Why is he so angry all the time?";
+                break;
+              default:
+                combat = "Something went wrong idk"
+                break;
+            }
           }
+
           if (players[playerIndex].hp <= 0) {
             dead(playerIndex);
             pDied = true;
@@ -760,7 +767,7 @@ function gameThread(gameData) {
             };
           };
           if (pX.inCombat) {
-            pX.initative = Math.random() + pX.cunning;
+            pX.initiative = Math.random() + pX.cunning;
           };
         };
       };
@@ -887,7 +894,8 @@ function gameThread(gameData) {
                     attackARAY.push({
                       'playerID': turnDB[i].playerID,
                       'attackAction': turnDB[i].aAction,
-                      'advs': turnDB[i].advsID
+                      'advs': turnDB[i].advsID,
+                      'initiative': findPlayerInit(turnDB[i].playerID)
                     });
                     break;
                   case "defend":
@@ -903,6 +911,10 @@ function gameThread(gameData) {
                     if (players[playerIndex].star.length >= 1) {
                       dropStar(playerIndex);
                     };
+                    defendARAY.push({
+                      'playerID': turnDB[i].playerID,
+                      'defense': turnDB[i].dAction
+                    });
                     moveARAY.push({
                       'playerID': turnDB[i].playerID,
                       'stageX': xRetreat * 100,
@@ -921,7 +933,9 @@ function gameThread(gameData) {
 
               if (attackARAY.length != 0) {
                 clearInterval(t);
-                //sortAttackARAY(attackARAY, performAttack);
+                attackARAY.sort(function (a, b) {
+                  return b.initiative - a.initiative;
+                });
                 performAttack(attackARAY);
               }
 
@@ -999,7 +1013,8 @@ function gameThread(gameData) {
             'cunning': t1.cunning,
             'star': t1.star.length,
             'target': t2,
-            'order': order,
+            //'order': order,
+            //'initiative':t1.initiative,
             'cardinal': cardOrder,
             'inCombat': combatin,
             'isDead': t1.isDead
@@ -1136,4 +1151,3 @@ ingame.on('connection', function (socket) {
       });
   }
 });
-
