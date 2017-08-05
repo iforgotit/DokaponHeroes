@@ -598,7 +598,18 @@ function gameThread(gameData) {
         let hitchance = Math.floor((Math.random() * 100) + 1);
 
         if (player.isDead == false && advs.isDead == false) {
-          if (player.initiative < advs.initiative && advsDefense == "Retreat") {
+          if (playerAttack == "Focus") {
+            let focusPower = player.magic;
+
+            player.focusDecay[turnCount + 3] = focusPower;
+
+            players[playerIndex].strength += focusPower;
+            players[playerIndex].magic += focusPower;
+            players[playerIndex].cunning += focusPower;
+            damage = "";
+            attackType = "focus";
+            combat = player.dName + " reflects on himself. Why is he so angry all the time?";
+          } else if (player.initiative < advs.initiative && advsDefense == "Retreat") {
             damage = "";
             attackType = "runaway";
             combat = advs.dName + " ran away";
@@ -652,18 +663,6 @@ function gameThread(gameData) {
                 combat = player.dName + "'s " + playerAttack + " does " + damage + " to " + advs.dName;
                 players[advsIndex].hp -= damage;
                 attackType = "magical";
-                break;
-              case "Focus":
-                let focusPower = player.magic;
-
-                player.focusDecay[turnCount + 3] = focusPower;
-
-                players[playerIndex].strength += focusPower;
-                players[playerIndex].magic += focusPower;
-                players[playerIndex].cunning += focusPower;
-                damage = "";
-                attackType = "focus";
-                combat = player.dName + " reflects on himself. Why is he so angry all the time?";
                 break;
               default:
                 combat = "Something went wrong idk"

@@ -819,7 +819,7 @@
       pHero.y = 675 * combatScale;
       aHero.y = 675 * combatScale;
 
-      pHero.x = 200 * combatScale;
+      pHero.x = 300 * combatScale;
       aHero.x = 800 * combatScale;
 
       cbContainer.alpha = 0;
@@ -866,7 +866,7 @@
           break;
       }
 
-      combatTL.add(clearStage, 6);
+      combatTL.add(clearStage, 5);
 
       combatTL.to(leftRect, 1, {
         x: leftRect.x + zoomLocX,
@@ -905,7 +905,7 @@
       }, 1);
 
       function animPhyical() {
-        combatTL.to(pHero, 2, {
+        combatTL.to(pHero, 1, {
           x: (aHero.x - (100 * combatScale)),
           onStart: function () {
             pHero.gotoAndPlay("Run");
@@ -919,7 +919,7 @@
           onStart: function () {
             aHero.gotoAndPlay("Hurt");
           }
-        }, 4.5)
+        }, 3.5)
         combatTL.to(dmgText, 1, {
           onStart: function () {
             dmgText.alpha = 1;
@@ -927,12 +927,45 @@
           x: dmgText.x + scale50px,
           y: dmgText.y + scale50px,
           ease: Bounce.easeOut
-        }, 4.5)
+        }, 3.5)
       }
 
 
-      function animRunAway(){
+      function animRunAway() {
+        let confused1 = new createjs.Text("?", "bold 30px Lucida Sans Unicode", "blue");
+        let confused2 = new createjs.Text("?", "bold 38px Lucida Sans Unicode", "blue");
+        let confused3 = new createjs.Text("?", "bold 30px Lucida Sans Unicode", "blue");
+        confused1.alpha = 0;
+        confused2.alpha = 0;
+        confused3.alpha = 0;
 
+        confused1.x = 585 * combatScale;
+        confused1.y = 550 * combatScale;
+
+        confused2.x = 635 * combatScale;
+        confused2.y = 485 * combatScale;
+
+        confused3.x = 685 * combatScale;
+        confused3.y = 550 * combatScale;
+
+        cbContainer.addChild(confused1, confused2, confused3);
+
+        combatTL.to(pHero, 1, {
+          x: (aHero.x - scale150px),
+          onStart: function () {
+            pHero.gotoAndPlay("Run");
+          },
+          onComplete: function () {
+            pHero.gotoAndPlay("Stand");
+            confused1.alpha = 1;
+            confused2.alpha = 1;
+            confused3.alpha = 1;
+          },
+          ease: Power0.easeNone
+        }, "wipeEnd");
+        combatTL.to(aHero, 2, {
+          alpha: 0
+        }, 2)
       }
 
       function animFocus() {
@@ -958,20 +991,20 @@
         cbContainer.addChild(focusLeft, focusRight);
 
         combatTL.fromTo(focusLeft, 1, {
-          x: 500 * combatScale
+          x: 600 * combatScale
         }, {
-          x: 600 * combatScale,
+          x: 500 * combatScale,
           yoyo: true,
           repeat: -1
-        }, 3)
+        }, 2.5)
 
         combatTL.fromTo(focusRight, 1, {
-          x: 500 * combatScale
+          x: 400 * combatScale
         }, {
-          x: 400 * combatScale,
+          x: 500 * combatScale,
           yoyo: true,
           repeat: -1
-        }, 3)
+        }, 2.5)
       }
 
       function animLightening() {
@@ -1015,7 +1048,7 @@
       }
 
       function animDodge() {
-        combatTL.to(pHero, 2, {
+        combatTL.to(pHero, 1, {
           x: (aHero.x - scale150px),
           onStart: function () {
             pHero.gotoAndPlay("Run");
@@ -1028,7 +1061,7 @@
         combatTL.to(aHero, 1, {
           x: (aHero.x + (60 * combatScale)),
           scaleX: combatScale
-        }, 4)
+        }, 3)
         combatTL.to(dmgText, 1, {
           onStart: function () {
             dmgText.alpha = 1;
@@ -1036,12 +1069,12 @@
           x: dmgText.x + scale50px,
           y: dmgText.y + scale50px,
           ease: Bounce.easeOut
-        }, 4)
+        }, 3)
       }
 
       function animRiposte() {
         aHero.scaleX = combatScale
-        combatTL.to(pHero, 2, {
+        combatTL.to(pHero, 1, {
           x: (aHero.x - scale150px),
           onStart: function () {
             pHero.gotoAndPlay("Run");
@@ -1057,7 +1090,7 @@
           onStart: function () {
             aHero.gotoAndPlay("Jump");
           }
-        }, 3.5)
+        }, 2.5)
         combatTL.to(aHero, .5, {
           y: (aHero.y),
           x: (aHero.x - (260 * combatScale)),
@@ -1065,12 +1098,12 @@
             aHero.scaleX = -combatScale;
             aHero.gotoAndPlay("Attack");
           }
-        }, 4)
+        }, 3)
         combatTL.to(pHero, .5, {
           onStart: function () {
             pHero.gotoAndPlay("Hurt");
           }
-        }, 5)
+        }, 4)
         combatTL.to(dmgText, 1, {
           onStart: function () {
             dmgText.alpha = 1;
@@ -1078,7 +1111,7 @@
           x: dmgText.x + scale50px,
           y: dmgText.y + scale50px,
           ease: Bounce.easeOut
-        }, 5)
+        }, 4)
       }
 
       function clearStage() {
