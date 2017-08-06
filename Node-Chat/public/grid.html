@@ -1241,6 +1241,7 @@
     });
 
     socket.on('result', function (strResult) {
+      mClose();
       let text = new createjs.Text(strResult, "bold 72px Arial", "#ff7700");
       let BFW = document.getElementById("battlefield").offsetWidth;
       let textX = (BFW / 2) - 100;

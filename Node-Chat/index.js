@@ -602,7 +602,7 @@ function gameThread(gameData) {
           if (playerAttack == "Focus") {
             let focusPower = player.magic;
 
-            player.focusDecay[turnCount + 3] = focusPower;
+            players[playerIndex].focusDecay[turnCount + 3] = focusPower;
 
             players[playerIndex].strength += focusPower;
             players[playerIndex].magic += focusPower;
@@ -875,7 +875,7 @@ function gameThread(gameData) {
 
           getTurn(db, function (turnDB) {
             db.close();
-            turnCount++;
+            //turnCount++;
             if (turnDB.length != 0) {
               let moveARAY = new Array();
               let attackARAY = new Array();
@@ -945,6 +945,7 @@ function gameThread(gameData) {
 
               checkForCombat();
               inactive = 0;
+              turnCount++;
 
               ingame.in(gameData._id).emit('gameTime', 'Taking turn now');
             } else {
