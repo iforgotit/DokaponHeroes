@@ -595,9 +595,10 @@ function gameThread(gameData) {
         } else {
           dodge = ((dodge * 5) + 5);
         }
+
         let hitchance = Math.floor((Math.random() * 100) + 1);
 
-        if (player.isDead == false && advs.isDead == false) {
+        if (player.isDead == false && (advs.isDead == false || playerAttack == "Focus")) {
           if (playerAttack == "Focus") {
             let focusPower = player.magic;
 
