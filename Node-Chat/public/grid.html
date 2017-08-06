@@ -657,15 +657,15 @@
 
       function deadAction() {
         document.getElementById("z").innerHTML += combat + "<br>";
-        let playerBrawl = stage.getChildByName("b" + pX);
         let playerHero = stage.getChildByName(pX);
         let playerName = stage.getChildByName("n" + pX);
 
-        playerBrawl.alpha = 0;
         playerHero.alpha = 1;
         playerName.alpha = 1;
 
         playerHero.gotoAndPlay('Die');
+        let playerBrawl = stage.getChildByName("b" + pX);
+        //stage.removeChild(playerBrawl);
       }
 
     });
